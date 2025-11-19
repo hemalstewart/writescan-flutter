@@ -129,6 +129,39 @@ class BotsController extends StateNotifier<BotsState> {
     }
   }
 
+  Future<Bot> createBotFromDocument(String documentId, {String? name}) async {
+    state = state.copyWith(isImporting: true);
+    try {
+      final response = await _api.createBot(documentId: documentId, name: name);
+      final bot = Bot.fromJson(Map<String, dynamic>.from(response));
+      await _loadRemote();
+      return bot;
+    } catch (error) {
+      throw BotsException(_messageFromError(error));
+    } finally {
+      state = state.copyWith(isImporting: false);
+    }
+  }
+
+  Future<void> deleteBot(String id) async {
+    final current = List<Bot>.from(state.bots);
+    final idx = current.indexWhere((b) => b.id == id);
+    if (idx == -1) return;
+    final removed = current.removeAt(idx);
+    state = state.copyWith(bots: current);
+    await _save(current);
+    try {
+      await _api.deleteBot(id);
+    } catch (error) {
+      final reverted = List<Bot>.from(state.bots);
+      final insertIndex = idx <= reverted.length ? idx : reverted.length;
+      reverted.insert(insertIndex, removed);
+      state = state.copyWith(bots: reverted);
+      await _save(reverted);
+      throw BotsException(_messageFromError(error));
+    }
+  }
+
   Future<void> _load() async {
     try {
       await _loadRemote();

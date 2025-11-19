@@ -1,0 +1,234 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+import '../../home/state/home_state.dart';
+
+class HandwritingScanPage extends ConsumerStatefulWidget {
+  const HandwritingScanPage({super.key});
+
+  @override
+  ConsumerState<HandwritingScanPage> createState() => _HandwritingScanPageState();
+}
+
+class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
+  final _textController = TextEditingController();
+  String _status = 'Capture a handwritten note to convert it into text.';
+  String? _imagePath;
+  bool _processing = false;
+  bool _saving = false;
+  late final TextRecognizer _textRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _textRecognizer.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Handwriting Scan'),
+        backgroundColor: colors.surface,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _PreviewCard(imagePath: _imagePath),
+                const SizedBox(height: 16),
+                Text(
+                  _status,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _processing ? null : _captureImage,
+                      icon: const Icon(Icons.camera_alt_rounded),
+                      label: const Text('Capture'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _processing ? null : _pickImage,
+                      icon: const Icon(Icons.photo_library_rounded),
+                      label: const Text('Gallery'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: TextField(
+                    controller: _textController,
+                    maxLines: null,
+                    expands: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Recognised text will appear here...',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed:
+                        (_textController.text.trim().isEmpty || _saving) ? null : _saveNote,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.save_rounded),
+                    label: const Text('Save to documents'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _captureImage() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.camera);
+    if (file != null) {
+      await _processImage(file.path);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final res = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (res != null && res.files.single.path != null) {
+      await _processImage(res.files.single.path!);
+    }
+  }
+
+  Future<void> _processImage(String path) async {
+    setState(() {
+      _processing = true;
+      _status = 'Reading handwriting...';
+      _imagePath = path;
+      _textController.clear();
+    });
+    try {
+      final input = InputImage.fromFilePath(path);
+      final result = await _textRecognizer.processImage(input);
+      final text = result.text.trim();
+      setState(() {
+        _textController.text = text;
+        _status = text.isEmpty
+            ? 'No handwriting detected. Try again with better lighting.'
+            : 'Review the text, edit if needed, then save.';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'Failed to read handwriting: $e';
+      });
+    } finally {
+      setState(() => _processing = false);
+    }
+  }
+
+  Future<void> _saveNote() async {
+    final text = _textController.text.trim();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nothing to save yet.')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File(p.join(dir.path, '${DateTime.now().millisecondsSinceEpoch}.txt'));
+      await file.writeAsString(text);
+      final name = 'Handwriting ${DateTime.now().millisecondsSinceEpoch}';
+      await ref.read(homeControllerProvider.notifier).uploadDocument(
+            name,
+            DocumentKind.handwriting,
+            path: file.path,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved "$name" to Documents')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+}
+
+class _PreviewCard extends StatelessWidget {
+  const _PreviewCard({required this.imagePath});
+
+  final String? imagePath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 180,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: imagePath == null
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.draw_rounded, color: Colors.white54, size: 48),
+                SizedBox(height: 8),
+                Text('No preview yet', style: TextStyle(color: Colors.white54)),
+              ],
+            )
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.file(
+                File(imagePath!),
+                fit: BoxFit.cover,
+                width: double.infinity,
+              ),
+            ),
+    );
+  }
+}

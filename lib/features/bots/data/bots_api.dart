@@ -47,6 +47,18 @@ class BotsApi {
     }
     throw BotsApiException('Failed to create bot (${res.statusCode})');
   }
+
+  Future<void> deleteBot(String botId) async {
+    final uri = Uri.parse('${AppConfig.apiBase}/bots/$botId');
+    final cookie = await LocalStorage().getSessionCookie();
+    final res = await _client.delete(uri, headers: {
+      if (cookie != null) 'Cookie': cookie,
+    });
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return;
+    }
+    throw BotsApiException('Failed to delete bot (${res.statusCode})');
+  }
 }
 
 class BotsApiException implements Exception {

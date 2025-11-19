@@ -152,6 +152,19 @@ class GeneralChatController extends StateNotifier<GeneralChatState> {
     }
   }
 
+  Future<void> clear() async {
+    final previous = List<ChatMessage>.from(state.messages);
+    state = state.copyWith(messages: []);
+    await _save(const []);
+    try {
+      await _api.clearConversation();
+    } catch (e) {
+      state = state.copyWith(messages: previous);
+      await _save(previous);
+      rethrow;
+    }
+  }
+
   Future<void> _save(List<ChatMessage> messages) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(

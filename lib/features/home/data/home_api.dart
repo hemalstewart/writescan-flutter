@@ -12,8 +12,11 @@ class HomeApi {
   final http.Client _client;
   final _storage = LocalStorage();
 
-  Future<List<Map<String, dynamic>>> fetchDocuments() async {
-    final uri = Uri.parse('${AppConfig.apiBase}/documents');
+  Future<List<Map<String, dynamic>>> fetchDocuments({String? folderId}) async {
+    final base = Uri.parse('${AppConfig.apiBase}/documents');
+    final uri = folderId == null || folderId.isEmpty
+        ? base
+        : base.replace(queryParameters: {'folder_id': folderId});
     final cookie = await _storage.getSessionCookie();
     final res = await _client.get(uri, headers: _headers(cookie));
     _debugLog('documents.fetch', res);
@@ -93,6 +96,88 @@ class HomeApi {
       return body['data'] as Map<String, dynamic>? ?? {};
     }
     throw HomeApiException('Failed to upload (${res.statusCode})');
+  }
+
+  Future<Map<String, dynamic>> updateFolder(String id, String name) async {
+    final uri = Uri.parse('${AppConfig.apiBase}/folders/$id');
+    final cookie = await _storage.getSessionCookie();
+    final res = await _client.patch(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        ..._headers(cookie),
+      },
+      body: jsonEncode({'name': name}),
+    );
+    _debugLog('folders.update', res);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      final decoded = jsonDecode(res.body) as Map<String, dynamic>;
+      return decoded['data'] as Map<String, dynamic>? ?? {};
+    }
+    throw HomeApiException('Failed to update folder (${res.statusCode})');
+  }
+
+  Future<void> deleteFolder(String id) async {
+    final uri = Uri.parse('${AppConfig.apiBase}/folders/$id');
+    final cookie = await _storage.getSessionCookie();
+    final res = await _client.delete(uri, headers: _headers(cookie));
+    _debugLog('folders.delete', res);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return;
+    }
+    throw HomeApiException('Failed to delete folder (${res.statusCode})');
+  }
+
+  Future<Map<String, dynamic>> updateDocument(
+    String documentId, {
+    String? name,
+    String? folderId,
+    String? geminiText,
+  }) async {
+    final uri = Uri.parse('${AppConfig.apiBase}/documents/$documentId');
+    final cookie = await _storage.getSessionCookie();
+    final body = <String, dynamic>{
+      if (name != null) 'name': name,
+      if (folderId != null) 'folder_id': folderId,
+      if (geminiText != null) 'gemini_text': geminiText,
+    };
+    final res = await _client.patch(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        ..._headers(cookie),
+      },
+      body: jsonEncode(body),
+    );
+    _debugLog('documents.update', res);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      final decoded = jsonDecode(res.body) as Map<String, dynamic>;
+      return decoded['data'] as Map<String, dynamic>? ?? {};
+    }
+    throw HomeApiException('Failed to update (${res.statusCode})');
+  }
+
+  Future<void> deleteDocument(String documentId) async {
+    final uri = Uri.parse('${AppConfig.apiBase}/documents/$documentId');
+    final cookie = await _storage.getSessionCookie();
+    final res = await _client.delete(uri, headers: _headers(cookie));
+    _debugLog('documents.delete', res);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return;
+    }
+    throw HomeApiException('Failed to delete (${res.statusCode})');
+  }
+
+  Future<Map<String, dynamic>> fetchDocument(String documentId) async {
+    final uri = Uri.parse('${AppConfig.apiBase}/documents/$documentId');
+    final cookie = await _storage.getSessionCookie();
+    final res = await _client.get(uri, headers: _headers(cookie));
+    _debugLog('documents.show', res);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      return body['data'] as Map<String, dynamic>? ?? {};
+    }
+    throw HomeApiException('Failed to load document (${res.statusCode})');
   }
 
   Map<String, String> _headers(String? cookie) {

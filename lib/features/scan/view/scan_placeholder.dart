@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:image_picker/image_picker.dart';
@@ -158,6 +161,9 @@ class ScanPlaceholderPage extends ConsumerWidget {
   }
 }
 
+const MethodChannel _visionScannerChannel =
+    MethodChannel('writescan/vision_scanner');
+
 class _PickResult {
   _PickResult(this.title, this.path);
   final String title;
@@ -165,30 +171,40 @@ class _PickResult {
 }
 
 Future<_PickResult?> _scanWithCamera(DocumentKind kind) async {
-  final scanner = DocumentScanner(
-    options: DocumentScannerOptions(
-      documentFormat: DocumentFormat.pdf,
-      pageLimit: 12,
-      mode: ScannerMode.full,
-      isGalleryImport: true,
-    ),
-  );
-  try {
-    final result = await scanner.scanDocument();
-    if (result.pdf != null) {
-      return _PickResult(_friendlyName(result.pdf!.uri), result.pdf!.uri);
+  if (Platform.isIOS) {
+    final vision = await _scanWithVisionKit();
+    if (vision != null) {
+      return vision;
     }
-    if (result.images.isNotEmpty) {
-      final first = result.images.first;
-      return _PickResult(_friendlyName(first), first);
+  }
+
+  if (Platform.isAndroid) {
+    final scanner = DocumentScanner(
+      options: DocumentScannerOptions(
+        documentFormat: DocumentFormat.pdf,
+        pageLimit: 12,
+        mode: ScannerMode.full,
+        isGalleryImport: true,
+      ),
+    );
+    try {
+      final result = await scanner.scanDocument();
+      if (result.pdf != null) {
+        return _PickResult(_friendlyName(result.pdf!.uri), result.pdf!.uri);
+      }
+      if (result.images.isNotEmpty) {
+        final first = result.images.first;
+        return _PickResult(_friendlyName(first), first);
+      }
+    } catch (e) {
+      debugPrint('Document scanner failed: $e');
     }
-  } catch (_) {
-    // fallback to camera image picker
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera);
-    if (picked != null) {
-      return _PickResult(_friendlyName(picked.path), picked.path);
-    }
+  }
+
+  final picker = ImagePicker();
+  final picked = await picker.pickImage(source: ImageSource.camera);
+  if (picked != null) {
+    return _PickResult(_friendlyName(picked.path), picked.path);
   }
   return null;
 }
@@ -216,4 +232,16 @@ String _friendlyName(String path) {
   final base = p.basename(path);
   if (base.isEmpty) return 'Untitled';
   return base;
+}
+
+Future<_PickResult?> _scanWithVisionKit() async {
+  if (!Platform.isIOS) return null;
+  try {
+    final path = await _visionScannerChannel.invokeMethod<String>('scanDocument');
+    if (path == null || path.isEmpty) return null;
+    return _PickResult(_friendlyName(path), path);
+  } on PlatformException catch (e) {
+    debugPrint('VisionKit scanner error: $e');
+    return null;
+  }
 }

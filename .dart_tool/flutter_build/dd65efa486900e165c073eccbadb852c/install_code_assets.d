@@ -1,1 +1,0 @@
- /Users/lakminiinternational/writescan/.dart_tool/flutter_build/dd65efa486900e165c073eccbadb852c/native_assets.json: 

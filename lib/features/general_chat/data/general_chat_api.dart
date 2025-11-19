@@ -49,6 +49,20 @@ class GeneralChatApi {
     }
     throw GeneralChatApiException('Failed to send (${res.statusCode})');
   }
+
+  Future<void> clearConversation() async {
+    final uri = Uri.parse('${AppConfig.apiBase}/general-chat');
+    final cookie = await LocalStorage().getSessionCookie();
+    final res = await _client.delete(uri, headers: {
+      if (cookie != null) 'Cookie': cookie,
+    });
+    // ignore: avoid_print
+    print('[api:generalChat.clear] status=${res.statusCode} body=${res.body}');
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return;
+    }
+    throw GeneralChatApiException('Failed to clear (${res.statusCode})');
+  }
 }
 
 class GeneralChatApiException implements Exception {

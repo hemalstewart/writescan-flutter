@@ -14,8 +14,14 @@ import '../features/home/view/home_screen.dart';
 import '../features/more/view/more_screen.dart';
 import '../features/shell/view/app_shell.dart';
 import '../features/scan/view/scan_placeholder.dart';
+import '../features/scan/view/csv_scan_page.dart';
+import '../features/scan/view/handwriting_scan_page.dart';
+import '../features/scan/view/empty_document_page.dart';
 import '../features/home/state/home_state.dart';
 import '../features/bots/state/bots_state.dart';
+import '../features/documents/view/documents_screen.dart';
+import '../features/documents/view/document_viewer_page.dart';
+import '../features/bots/view/create_bot_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = GoRouterRefreshStream(
@@ -52,10 +58,57 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/documents',
+            name: 'documents',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: DocumentsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/documents/view',
+            name: 'documentViewer',
+            pageBuilder: (context, state) {
+              final doc = state.extra;
+              if (doc is DocumentItem) {
+                return NoTransitionPage(
+                  child: DocumentViewerPage(document: doc),
+                );
+              }
+              return const NoTransitionPage(child: DocumentsScreen());
+            },
+          ),
+          GoRoute(
+            path: '/folders/:id',
+            name: 'folderDetail',
+            pageBuilder: (context, state) {
+              final folderId = state.pathParameters['id'] ?? '';
+              final extra = state.extra;
+              String? folderName;
+              if (extra is Folder) {
+                folderName = extra.name;
+              } else {
+                folderName = state.uri.queryParameters['name'];
+              }
+              return NoTransitionPage(
+                child: DocumentsScreen(
+                  folderId: folderId,
+                  folderName: folderName,
+                ),
+              );
+            },
+          ),
+          GoRoute(
             path: '/bots',
             name: 'bots',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: BotsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/bots/create',
+            name: 'createBot',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: CreateBotScreen(),
             ),
           ),
           GoRoute(
@@ -98,6 +151,27 @@ final routerProvider = Provider<GoRouter>((ref) {
               final kind = state.extra as DocumentKind? ?? DocumentKind.normal;
               return ScanPlaceholderPage(kind: kind);
             },
+          ),
+          GoRoute(
+            path: '/scan/csv',
+            name: 'scanCsv',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: CsvScanPage(),
+            ),
+          ),
+          GoRoute(
+            path: '/scan/handwriting',
+            name: 'scanHandwriting',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: HandwritingScanPage(),
+            ),
+          ),
+          GoRoute(
+            path: '/scan/empty',
+            name: 'scanEmpty',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: EmptyDocumentPage(),
+            ),
           ),
         ],
       ),

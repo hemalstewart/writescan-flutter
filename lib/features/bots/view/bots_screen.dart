@@ -32,25 +32,30 @@ class BotsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'AI Bots',
-                      style: TextStyle(
-                        color: colors.onSurface,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 22,
+                    Expanded(
+                      child: Text(
+                        'AI Bots',
+                        style: TextStyle(
+                          color: colors.onSurface,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 22,
+                        ),
                       ),
                     ),
-                    FilledButton.icon(
-                      onPressed: state.isImporting
-                          ? null
-                          : () async {
-                              final picked =
-                                  await FilePicker.platform.pickFiles(
-                                type: FileType.custom,
-                                allowedExtensions: [
-                                  'pdf',
+                    Flexible(
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          FilledButton.icon(
+                          onPressed: state.isImporting
+                              ? null
+                              : () async {
+                                  final picked =
+                                      await FilePicker.platform.pickFiles(
+                                    type: FileType.custom,
+                                    allowedExtensions: [
+                                      'pdf',
                                   'txt',
                                   'doc',
                                   'docx',
@@ -95,19 +100,30 @@ class BotsScreen extends ConsumerWidget {
                                     );
                                   }
                                 }
-                              }
-                            },
-                      icon: state.isImporting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.upload_rounded),
-                      label: Text(state.isImporting ? 'Uploading...' : 'Upload'),
+                                }
+                              },
+                          icon: state.isImporting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.upload_rounded),
+                          label:
+                              Text(state.isImporting ? 'Uploading...' : 'Upload'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            GoRouter.of(context).push('/bots/create');
+                          },
+                          icon: const Icon(Icons.add_circle_outline),
+                          label: const Text('From documents'),
+                        ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -124,19 +140,28 @@ class BotsScreen extends ConsumerWidget {
                             childAspectRatio: 0.7,
                           ),
                           itemCount: state.bots.length,
-                          itemBuilder: (context, index) => GestureDetector(
-                            onTap: () {
-                              final bot = state.bots[index];
-                              GoRouter.of(context).push('/botChat', extra: {
-                                'id': bot.id,
-                                'name': bot.name,
-                                'source': bot.source,
-                                'tags': bot.tags,
-                              });
-                            },
-                            child:
-                                _BotCard(bot: state.bots[index], colors: colors),
-                          ),
+                          itemBuilder: (context, index) {
+                            final bot = state.bots[index];
+                            return GestureDetector(
+                              onTap: () {
+                                GoRouter.of(context).push('/botChat', extra: {
+                                  'id': bot.id,
+                                  'name': bot.name,
+                                  'source': bot.source,
+                                  'tags': bot.tags,
+                                });
+                              },
+                              child: _BotCard(
+                                bot: bot,
+                                colors: colors,
+                                onDelete: () => _confirmDeleteBot(
+                                  context,
+                                  controller,
+                                  bot,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                 ),
               ],
@@ -146,13 +171,57 @@ class BotsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _confirmDeleteBot(
+    BuildContext context,
+    BotsController controller,
+    Bot bot,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete bot?'),
+        content: Text('"${bot.name}" and its chat history will be removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await controller.deleteBot(bot.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${bot.name} deleted')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
 }
 
 class _BotCard extends StatelessWidget {
-  const _BotCard({required this.bot, required this.colors});
+  const _BotCard({
+    required this.bot,
+    required this.colors,
+    required this.onDelete,
+  });
 
   final Bot bot;
   final ColorScheme colors;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -175,9 +244,17 @@ class _BotCard extends StatelessWidget {
                 child: const Icon(Icons.smart_toy_rounded, color: Colors.white),
               ),
               const Spacer(),
-              IconButton(
+              PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, color: Colors.white70),
-                onPressed: () {},
+                onSelected: (value) {
+                  if (value == 'delete') onDelete();
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Delete bot'),
+                  ),
+                ],
               ),
             ],
           ),

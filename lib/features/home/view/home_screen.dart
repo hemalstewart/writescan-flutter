@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:writescan/utils/open_document.dart';
 
 import '../state/home_state.dart';
 
@@ -30,27 +29,52 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Header(colors: colors),
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Header(colors: colors),
                 const SizedBox(height: 18),
                 _QuickActions(
                   colors: colors,
                   onAction: (kind) {
-                    GoRouter.of(context).push('/scan', extra: kind);
+                    if (kind == DocumentKind.csv) {
+                      GoRouter.of(context).push('/scan/csv');
+                    } else if (kind == DocumentKind.handwriting) {
+                      GoRouter.of(context).push('/scan/handwriting');
+                    } else {
+                      GoRouter.of(context).push('/scan', extra: kind);
+                    }
                   },
                 ),
                 const SizedBox(height: 24),
-                Text(
-                  'Recent documents',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: colors.onSurface,
-                  ),
+                FilledButton.icon(
+                  onPressed: () => GoRouter.of(context).push('/scan/empty'),
+                  icon: const Icon(Icons.note_add_outlined),
+                  label: const Text('New empty document'),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Recent documents',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => GoRouter.of(context).push('/documents'),
+                      child: const Text('View all'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 if (state.isLoading)
@@ -69,7 +93,7 @@ class HomeScreen extends ConsumerWidget {
                         .map(
                           (doc) => GestureDetector(
                             onTap: (doc.path != null || doc.fileUrl != null)
-                                ? () => _openFile(context, doc)
+                                ? () => openDocument(context, doc)
                                 : null,
                             child: _DocCard(doc: doc, colors: colors),
                           ),
@@ -97,23 +121,41 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 120,
-                  child: state.folders.isEmpty
-                      ? _emptyBlock(colors, 'No folders', 'Create one to organize files.')
-                      : ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: state.folders.length,
-                          separatorBuilder: (context, _) =>
-                              const SizedBox(width: 12),
-                          itemBuilder: (context, index) => _FolderCard(
-                            folder: state.folders[index],
-                            colors: colors,
-                          ),
-                        ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 120,
+                      child: state.folders.isEmpty
+                          ? _emptyBlock(
+                              colors, 'No folders', 'Create one to organize files.')
+                          : ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: state.folders.length,
+                              separatorBuilder: (context, _) =>
+                                  const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final folder = state.folders[index];
+                                return GestureDetector(
+                                  onTap: () => GoRouter.of(context).push(
+                                    '/folders/${folder.id}',
+                                    extra: folder,
+                                  ),
+                                  onLongPress: () => _showFolderActions(
+                                    context,
+                                    controller,
+                                    folder,
+                                  ),
+                                  child: _FolderCard(
+                                    folder: folder,
+                                    colors: colors,
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -169,6 +211,127 @@ class HomeScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  void _showFolderActions(
+    BuildContext context,
+    HomeController controller,
+    Folder folder,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.black87,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading:
+                  const Icon(Icons.drive_file_rename_outline, color: Colors.white),
+              title: const Text('Rename', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _promptFolderRename(context, controller, folder);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              title: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmFolderDelete(context, controller, folder);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _promptFolderRename(
+    BuildContext context,
+    HomeController controller,
+    Folder folder,
+  ) async {
+    final nameController = TextEditingController(text: folder.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename folder'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(labelText: 'Folder name'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, nameController.text),
+            child: const Text('Rename'),
+          ),
+        ],
+      ),
+    );
+    if (newName == null) return;
+    try {
+      await controller.renameFolder(folder.id, newName);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Folder renamed')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmFolderDelete(
+    BuildContext context,
+    HomeController controller,
+    Folder folder,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete folder?'),
+        content: const Text('Documents inside will remain available.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await controller.deleteFolder(folder.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Folder deleted')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
   }
 }
 
@@ -488,28 +651,4 @@ Color _folderColor(String? hex, Color fallback) {
   );
   if (value == null) return fallback;
   return Color(value);
-}
-
-Future<void> _openFile(BuildContext context, DocumentItem doc) async {
-  final target = doc.fileUrl ?? doc.path;
-  if (target == null) return;
-  if (target.startsWith('http')) {
-    final uri = Uri.parse(target);
-    final launched = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
-    if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the document link')),
-      );
-    }
-    return;
-  }
-  final result = await OpenFilex.open(target);
-  if (result.type != ResultType.done && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Could not open file: ${result.message}')),
-    );
-  }
 }

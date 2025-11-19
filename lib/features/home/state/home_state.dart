@@ -57,6 +57,12 @@ class DocumentItem {
     this.kind = DocumentKind.normal,
     this.path,
     this.fileUrl,
+    this.createdAt,
+    this.updatedAt,
+    this.status,
+    this.mimeType,
+    this.geminiText,
+    this.sizeBytes,
   });
 
   final String id;
@@ -67,6 +73,53 @@ class DocumentItem {
   final DocumentKind kind;
   final String? path;
   final String? fileUrl;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String? status;
+  final String? mimeType;
+  final String? geminiText;
+  final int? sizeBytes;
+
+  bool get isPdf {
+    if (mimeType != null && mimeType!.toLowerCase().contains('pdf')) {
+      return true;
+    }
+    bool hasPdf(String? value) => value?.toLowerCase().endsWith('.pdf') ?? false;
+    return hasPdf(title) || hasPdf(path) || hasPdf(fileUrl);
+  }
+
+  DocumentItem copyWith({
+    String? title,
+    String? size,
+    String? dateLabel,
+    String? folderId,
+    DocumentKind? kind,
+    String? path,
+    String? fileUrl,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? status,
+    String? mimeType,
+    String? geminiText,
+    int? sizeBytes,
+  }) {
+    return DocumentItem(
+      id: id,
+      title: title ?? this.title,
+      size: size ?? this.size,
+      dateLabel: dateLabel ?? this.dateLabel,
+      folderId: folderId ?? this.folderId,
+      kind: kind ?? this.kind,
+      path: path ?? this.path,
+      fileUrl: fileUrl ?? this.fileUrl,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      status: status ?? this.status,
+      mimeType: mimeType ?? this.mimeType,
+      geminiText: geminiText ?? this.geminiText,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -77,31 +130,52 @@ class DocumentItem {
         'kind': kind.name,
         'path': path,
         'fileUrl': fileUrl,
+        'createdAt': createdAt?.toIso8601String(),
+        'updatedAt': updatedAt?.toIso8601String(),
+        'status': status,
+        'mimeType': mimeType,
+        'geminiText': geminiText,
+        'sizeBytes': sizeBytes,
       };
 
-  factory DocumentItem.fromJson(Map<String, dynamic> json) => DocumentItem(
-        id: _idFrom(json['id'] ?? json['document_id'] ?? json['uuid']),
-        title: (json['title'] ?? json['name'] ?? 'Untitled').toString(),
-        size: _sizeLabel(
-          json['size'] ??
-              json['size_label'] ??
-              json['sizeLabel'] ??
-              json['size_bytes'] ??
-              json['file_size'] ??
-              json['filesize'],
-        ),
-        dateLabel: _dateLabelFromRaw(
-          json['dateLabel'] ??
-              json['created_at'] ??
-              json['createdAt'] ??
-              json['updated_at'] ??
-              json['timestamp'],
-        ),
-        folderId: _nullableString(json['folderId'] ?? json['folder_id']),
-        kind: _kindFromRaw(json['kind'] ?? json['type'] ?? json['document_type']),
-        path: json['path'] as String? ?? json['local_path'] as String?,
-        fileUrl: json['fileUrl'] as String? ?? json['file_url'] as String?,
-      );
+  factory DocumentItem.fromJson(Map<String, dynamic> json) {
+    final rawSize = json['size'] ??
+        json['size_label'] ??
+        json['sizeLabel'] ??
+        json['size_bytes'] ??
+        json['file_size'] ??
+        json['filesize'];
+    final createdRaw =
+        json['createdAt'] ?? json['created_at'] ?? json['timestamp'];
+    final updatedRaw = json['updatedAt'] ?? json['updated_at'];
+
+    return DocumentItem(
+      id: _idFrom(json['id'] ?? json['document_id'] ?? json['uuid']),
+      title: (json['title'] ?? json['name'] ?? 'Untitled').toString(),
+      size: _sizeLabel(rawSize),
+      dateLabel: _dateLabelFromRaw(
+        json['dateLabel'] ??
+            json['created_at'] ??
+            json['createdAt'] ??
+            json['updated_at'] ??
+            json['timestamp'],
+      ),
+      folderId: _nullableString(json['folderId'] ?? json['folder_id']),
+      kind:
+          _kindFromRaw(json['kind'] ?? json['type'] ?? json['document_type']),
+      path: json['path'] as String? ?? json['local_path'] as String?,
+      fileUrl: json['fileUrl'] as String? ?? json['file_url'] as String?,
+      createdAt: _dateFromRaw(createdRaw),
+      updatedAt: _dateFromRaw(updatedRaw),
+      status: json['status'] as String?,
+      mimeType:
+          json['mimeType'] as String? ?? json['mime_type'] as String?,
+      geminiText: json['geminiText'] as String? ??
+          json['gemini_text'] as String? ??
+          json['summary'] as String?,
+      sizeBytes: _sizeBytes(rawSize),
+    );
+  }
 }
 
 enum DocumentKind { normal, ocr, handwriting, csv }
@@ -223,11 +297,122 @@ class HomeController extends StateNotifier<HomeState> {
     }
   }
 
-  void deleteDocument(String id) {
-    state = state.copyWith(
-      documents: state.documents.where((d) => d.id != id).toList(),
-    );
-    _persist();
+  Future<void> renameFolder(String id, String newName) async {
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) {
+      throw HomeException('Folder name cannot be empty');
+    }
+    final idx = state.folders.indexWhere((f) => f.id == id);
+    if (idx == -1) throw HomeException('Folder not found');
+    final prev = state.folders[idx];
+    final updatedFolders = List<Folder>.from(state.folders);
+    updatedFolders[idx] = prev.copyWith(name: trimmed);
+    state = state.copyWith(folders: updatedFolders);
+    await _persist();
+    try {
+      final response = await _api.updateFolder(id, trimmed);
+      final folder = Folder.fromJson(Map<String, dynamic>.from(response));
+      final refreshed = List<Folder>.from(state.folders);
+      final newIdx = refreshed.indexWhere((f) => f.id == folder.id);
+      if (newIdx != -1) {
+        refreshed[newIdx] = folder;
+        state = state.copyWith(folders: refreshed);
+        await _persist();
+      }
+    } catch (error) {
+      final reverted = List<Folder>.from(state.folders);
+      final revertIdx = reverted.indexWhere((f) => f.id == prev.id);
+      if (revertIdx != -1) {
+        reverted[revertIdx] = prev;
+        state = state.copyWith(folders: reverted);
+        await _persist();
+      }
+      throw HomeException(_messageFromError(error));
+    }
+  }
+
+  Future<void> deleteFolder(String id) async {
+    final idx = state.folders.indexWhere((f) => f.id == id);
+    if (idx == -1) throw HomeException('Folder not found');
+    final removed = state.folders[idx];
+    final remaining = List<Folder>.from(state.folders)..removeAt(idx);
+    state = state.copyWith(folders: remaining);
+    await _persist();
+    try {
+      await _api.deleteFolder(id);
+      await _syncFromRemoteSilently();
+    } catch (error) {
+      final reverted = List<Folder>.from(state.folders);
+      reverted.insert(idx <= reverted.length ? idx : reverted.length, removed);
+      state = state.copyWith(folders: reverted);
+      await _persist();
+      throw HomeException(_messageFromError(error));
+    }
+  }
+
+  Future<void> renameDocument(String id, String newName) async {
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) {
+      throw HomeException('Name cannot be empty');
+    }
+    final idx = state.documents.indexWhere((d) => d.id == id);
+    if (idx == -1) throw HomeException('Document not found');
+    final previous = state.documents[idx];
+    final docs = List<DocumentItem>.from(state.documents);
+    docs[idx] = previous.copyWith(title: trimmed);
+    state = state.copyWith(documents: docs);
+    await _persist();
+    try {
+      final response = await _api.updateDocument(id, name: trimmed);
+      final updated =
+          DocumentItem.fromJson(Map<String, dynamic>.from(response));
+      await _replaceDocument(updated);
+      await _syncFromRemoteSilently();
+    } catch (error) {
+      await _restoreDocument(previous);
+      throw HomeException(_messageFromError(error));
+    }
+  }
+
+  Future<void> moveDocument(String id, {String? folderId}) async {
+    final idx = state.documents.indexWhere((d) => d.id == id);
+    if (idx == -1) throw HomeException('Document not found');
+    final previous = state.documents[idx];
+    final docs = List<DocumentItem>.from(state.documents);
+    docs[idx] = previous.copyWith(folderId: folderId);
+    state = state.copyWith(documents: docs);
+    await _persist();
+    try {
+      final response =
+          await _api.updateDocument(id, folderId: folderId ?? '');
+      final updated =
+          DocumentItem.fromJson(Map<String, dynamic>.from(response));
+      await _replaceDocument(updated);
+      await _syncFromRemoteSilently();
+    } catch (error) {
+      await _restoreDocument(previous);
+      throw HomeException(_messageFromError(error));
+    }
+  }
+
+  Future<void> deleteDocument(String id) async {
+    final docs = List<DocumentItem>.from(state.documents);
+    final idx = docs.indexWhere((d) => d.id == id);
+    if (idx == -1) throw HomeException('Document not found');
+    final removed = docs.removeAt(idx);
+    state = state.copyWith(documents: docs);
+    await _persist();
+    try {
+      await _api.deleteDocument(id);
+      await _syncFromRemoteSilently();
+    } catch (error) {
+      final reverted = List<DocumentItem>.from(state.documents);
+      final insertIndex = idx <= reverted.length ? idx : reverted.length;
+      reverted.insert(insertIndex, removed);
+      state = state.copyWith(documents: reverted);
+      await _persist();
+      throw HomeException(_messageFromError(error));
+    }
   }
 
   double _randomSize() {
@@ -325,6 +510,30 @@ class HomeController extends StateNotifier<HomeState> {
     }
   }
 
+  Future<void> _replaceDocument(DocumentItem document) async {
+    final docs = List<DocumentItem>.from(state.documents);
+    final idx = docs.indexWhere((d) => d.id == document.id);
+    if (idx == -1) {
+      docs.insert(0, document);
+    } else {
+      docs[idx] = document;
+    }
+    state = state.copyWith(documents: docs);
+    await _persist();
+  }
+
+  Future<void> _restoreDocument(DocumentItem document) async {
+    final docs = List<DocumentItem>.from(state.documents);
+    final idx = docs.indexWhere((d) => d.id == document.id);
+    if (idx == -1) {
+      docs.insert(0, document);
+    } else {
+      docs[idx] = document;
+    }
+    state = state.copyWith(documents: docs);
+    await _persist();
+  }
+
   Future<void> _persist() async {
     await _store.save(state.documents, state.folders);
   }
@@ -418,6 +627,20 @@ String _dateLabelFromRaw(dynamic raw) {
   return 'Just now';
 }
 
+DateTime? _dateFromRaw(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is DateTime) return raw;
+  if (raw is int) {
+    final millis = raw < 1000000000000 ? raw * 1000 : raw;
+    return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true)
+        .toLocal();
+  }
+  if (raw is String && raw.isNotEmpty) {
+    return DateTime.tryParse(raw);
+  }
+  return null;
+}
+
 String _formatRelative(DateTime date) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
@@ -440,6 +663,34 @@ String _formatRelative(DateTime date) {
     'Dec',
   ];
   return '${months[date.month - 1]} ${date.day}';
+}
+
+int? _sizeBytes(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is int) return raw;
+  if (raw is double) return raw.toInt();
+  if (raw is num) return raw.toInt();
+  if (raw is String) {
+    final trimmed = raw.trim().toLowerCase();
+    final numeric = double.tryParse(trimmed);
+    if (numeric != null) return numeric.toInt();
+    final match = RegExp(r'([0-9.]+)\s*(kb|mb|gb|bytes)')
+        .firstMatch(trimmed);
+    if (match != null) {
+      final value = double.tryParse(match.group(1) ?? '');
+      final unit = match.group(2);
+      if (value != null && unit != null) {
+        final multiplier = switch (unit) {
+          'kb' => 1024,
+          'mb' => 1024 * 1024,
+          'gb' => 1024 * 1024 * 1024,
+          _ => 1,
+        };
+        return (value * multiplier).toInt();
+      }
+    }
+  }
+  return null;
 }
 
 DocumentKind _kindFromRaw(dynamic raw) {

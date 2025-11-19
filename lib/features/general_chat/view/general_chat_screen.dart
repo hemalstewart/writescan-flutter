@@ -13,6 +13,7 @@ class GeneralChatScreen extends ConsumerStatefulWidget {
 class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
   final _scrollController = ScrollController();
   int _lastMessageCount = 0;
+  bool _clearing = false;
 
   void _scrollToBottom(List<ChatMessage> messages) {
     if (messages.length == _lastMessageCount) return;
@@ -66,10 +67,30 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
                         fontSize: 22,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.tune_rounded, color: Colors.white70),
-                    ),
+                    _clearing
+                        ? const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white70,
+                            ),
+                          )
+                        : PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert,
+                                color: Colors.white70),
+                            onSelected: (value) {
+                              if (value == 'clear') {
+                                _confirmClear(controller);
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(
+                                value: 'clear',
+                                child: Text('Clear conversation'),
+                              ),
+                            ],
+                          ),
                   ],
                 ),
               ),
@@ -118,6 +139,46 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmClear(GeneralChatController controller) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear conversation?'),
+        content: const Text('All general chat messages will be removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _clearing = true);
+    try {
+      await controller.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Chat cleared')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _clearing = false);
+      }
+    }
   }
 }
 
