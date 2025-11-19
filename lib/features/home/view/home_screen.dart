@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../state/home_state.dart';
 
@@ -39,10 +40,6 @@ class HomeScreen extends ConsumerWidget {
                 _QuickActions(
                   colors: colors,
                   onAction: (kind) {
-                    controller.addDocument(
-                      _titleForKind(kind),
-                      kind,
-                    );
                     GoRouter.of(context).push('/scan', extra: kind);
                   },
                 ),
@@ -71,9 +68,9 @@ class HomeScreen extends ConsumerWidget {
                     children: state.documents
                         .map(
                           (doc) => GestureDetector(
-                            onTap: doc.path == null
-                                ? null
-                                : () => _openFile(context, doc),
+                            onTap: (doc.path != null || doc.fileUrl != null)
+                                ? () => _openFile(context, doc)
+                                : null,
                             child: _DocCard(doc: doc, colors: colors),
                           ),
                         )
@@ -147,10 +144,23 @@ class HomeScreen extends ConsumerWidget {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
-                if (nameController.text.trim().isNotEmpty) {
-                  controller.addFolder(nameController.text.trim());
-                  Navigator.pop(context);
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+                try {
+                  await controller.addFolder(name);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                } catch (e) {
+                  final message = e is HomeException
+                      ? e.message
+                      : 'Failed to create folder';
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(message)),
+                    );
+                  }
                 }
               },
               child: const Text('Create'),
@@ -375,6 +385,7 @@ class _FolderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = _folderColor(folder.color, colors.secondary);
     return Container(
       width: 140,
       padding: const EdgeInsets.all(14),
@@ -389,7 +400,7 @@ class _FolderCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.folder_rounded, color: colors.secondary),
+              Icon(Icons.folder_rounded, color: accent),
               const Spacer(),
               Text(
                 '${folder.count} files',
@@ -469,23 +480,33 @@ class _QuickAction {
   final DocumentKind kind;
 }
 
-String _titleForKind(DocumentKind kind) {
-  switch (kind) {
-    case DocumentKind.normal:
-      return 'Scanned document';
-    case DocumentKind.ocr:
-      return 'Text extraction';
-    case DocumentKind.handwriting:
-      return 'Handwriting scan';
-    case DocumentKind.csv:
-      return 'Table extraction';
-  }
+Color _folderColor(String? hex, Color fallback) {
+  if (hex == null || hex.isEmpty) return fallback;
+  final value = int.tryParse(
+    'FF${hex.replaceFirst('#', '').padLeft(6, '0')}',
+    radix: 16,
+  );
+  if (value == null) return fallback;
+  return Color(value);
 }
 
-void _openFile(BuildContext context, DocumentItem doc) async {
-  final path = doc.path;
-  if (path == null) return;
-  final result = await OpenFilex.open(path);
+Future<void> _openFile(BuildContext context, DocumentItem doc) async {
+  final target = doc.fileUrl ?? doc.path;
+  if (target == null) return;
+  if (target.startsWith('http')) {
+    final uri = Uri.parse(target);
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the document link')),
+      );
+    }
+    return;
+  }
+  final result = await OpenFilex.open(target);
   if (result.type != ResultType.done && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Could not open file: ${result.message}')),

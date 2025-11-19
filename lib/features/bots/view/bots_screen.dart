@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/bots_state.dart';
+import '../../home/state/home_state.dart';
 import 'package:path/path.dart' as p;
 
 class BotsScreen extends ConsumerWidget {
@@ -42,28 +43,71 @@ class BotsScreen extends ConsumerWidget {
                       ),
                     ),
                     FilledButton.icon(
-                      onPressed: () async {
-                        final picked = await FilePicker.platform.pickFiles(
-                          type: FileType.custom,
-                          allowedExtensions: ['pdf', 'txt', 'doc', 'docx'],
-                        );
-                        if (picked != null && picked.files.single.path != null) {
-                          final path = picked.files.single.path!;
-                          final name = _friendlyName(path);
-                          await controller.addBot(
-                            name,
-                            'Based on $name',
-                            ['imported'],
-                          );
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Imported $name')),
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.upload_rounded),
-                      label: const Text('Upload PDF'),
+                      onPressed: state.isImporting
+                          ? null
+                          : () async {
+                              final picked =
+                                  await FilePicker.platform.pickFiles(
+                                type: FileType.custom,
+                                allowedExtensions: [
+                                  'pdf',
+                                  'txt',
+                                  'doc',
+                                  'docx',
+                                  'csv',
+                                  'jpeg',
+                                  'jpg',
+                                  'png'
+                                ],
+                              );
+                              if (picked != null &&
+                                  picked.files.single.path != null) {
+                                final path = picked.files.single.path!;
+                                final name = _friendlyName(path);
+                                try {
+                                  await controller.importFromPath(
+                                    path,
+                                    name: name,
+                                  );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Created bot from $name'),
+                                      ),
+                                    );
+                                  }
+                                  // refresh documents so the new upload appears on Home
+                                  try {
+                                    await ref
+                                        .read(
+                                          homeControllerProvider.notifier,
+                                        )
+                                        .refresh();
+                                  } catch (_) {}
+                                } catch (e) {
+                                  final message = e is BotsException
+                                      ? e.message
+                                      : 'Failed to import bot';
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(message)),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                      icon: state.isImporting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.upload_rounded),
+                      label: Text(state.isImporting ? 'Uploading...' : 'Upload'),
                     ),
                   ],
                 ),

@@ -136,6 +136,9 @@ class BotChatController extends StateNotifier<BotChatState> {
         msgs.addAll(newMessages);
         state = state.copyWith(messages: msgs);
         await _save(msgs);
+      } else {
+        // refresh from backend to see assistant replies
+        await _load();
       }
     } catch (_) {
       // keep optimistic message if API fails

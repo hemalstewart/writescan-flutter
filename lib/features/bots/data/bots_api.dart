@@ -6,7 +6,9 @@ import '../../../config/app_config.dart';
 import '../../../data/local_storage.dart';
 
 class BotsApi {
-  final _client = http.Client();
+  BotsApi({http.Client? client}) : _client = client ?? http.Client();
+
+  final http.Client _client;
 
   Future<List<Map<String, dynamic>>> fetchBots() async {
     final uri = Uri.parse('${AppConfig.apiBase}/bots');
@@ -20,6 +22,30 @@ class BotsApi {
       return data.whereType<Map<String, dynamic>>().toList();
     }
     throw BotsApiException('Failed to load bots (${res.statusCode})');
+  }
+
+  Future<Map<String, dynamic>> createBot({
+    required String documentId,
+    String? name,
+  }) async {
+    final uri = Uri.parse('${AppConfig.apiBase}/bots');
+    final cookie = await LocalStorage().getSessionCookie();
+    final res = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (cookie != null) 'Cookie': cookie,
+      },
+      body: jsonEncode({
+        'document_id': documentId,
+        if (name != null && name.isNotEmpty) 'name': name,
+      }),
+    );
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      return body['data'] as Map<String, dynamic>? ?? {};
+    }
+    throw BotsApiException('Failed to create bot (${res.statusCode})');
   }
 }
 

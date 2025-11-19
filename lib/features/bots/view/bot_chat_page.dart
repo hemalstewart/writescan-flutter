@@ -4,20 +4,48 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/bot_chat_controller.dart';
 import '../state/bots_state.dart';
 
-class BotChatPage extends ConsumerWidget {
+class BotChatPage extends ConsumerStatefulWidget {
   const BotChatPage({super.key, required this.bot});
 
   final Bot bot;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BotChatPage> createState() => _BotChatPageState();
+}
+
+class _BotChatPageState extends ConsumerState<BotChatPage> {
+  final _scrollController = ScrollController();
+  int _lastCount = 0;
+
+  void _scrollToBottom(List<BotChatMessage> messages) {
+    if (messages.length == _lastCount) return;
+    _lastCount = messages.length;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 80,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final state = ref.watch(botChatControllerProvider(bot.id));
-    final controller = ref.read(botChatControllerProvider(bot.id).notifier);
+    final state = ref.watch(botChatControllerProvider(widget.bot.id));
+    final controller = ref.read(botChatControllerProvider(widget.bot.id).notifier);
+    _scrollToBottom(state.messages);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(bot.name),
+        title: Text(widget.bot.name),
         backgroundColor: colors.surface,
       ),
       body: Container(
@@ -34,6 +62,7 @@ class BotChatPage extends ConsumerWidget {
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
+                      controller: _scrollController,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -49,7 +78,8 @@ class BotChatPage extends ConsumerWidget {
                           child: Container(
                             margin: const EdgeInsets.symmetric(vertical: 6),
                             padding: const EdgeInsets.all(12),
-                            constraints: const BoxConstraints(maxWidth: 280),
+                            constraints:
+                                const BoxConstraints(maxWidth: 280),
                             decoration: BoxDecoration(
                               color: isUser
                                   ? colors.primary.withValues(alpha: 0.2)

@@ -95,13 +95,7 @@ class ScanPlaceholderPage extends ConsumerWidget {
                   onPressed: () async {
                     final result = await _scanWithCamera(kind);
                     if (result != null && context.mounted) {
-                      ref
-                          .read(homeControllerProvider.notifier)
-                          .addDocument(result.title, kind, path: result.path);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Saved scan "${result.title}"')),
-                      );
-                      Navigator.of(context).pop();
+                      await _uploadResult(context, ref, kind, result);
                     }
                   },
                   icon: const Icon(Icons.camera_alt_rounded),
@@ -111,16 +105,8 @@ class ScanPlaceholderPage extends ConsumerWidget {
                 ElevatedButton.icon(
                   onPressed: () async {
                     final result = await _pickFileOrImage(kind);
-                    if (result != null) {
-                      ref
-                          .read(homeControllerProvider.notifier)
-                          .addDocument(result.title, kind, path: result.path);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Added "${result.title}"')),
-                        );
-                        Navigator.of(context).pop();
-                      }
+                    if (result != null && context.mounted) {
+                      await _uploadResult(context, ref, kind, result);
                     }
                   },
                   icon: const Icon(Icons.add),
@@ -140,6 +126,35 @@ class ScanPlaceholderPage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _uploadResult(
+    BuildContext context,
+    WidgetRef ref,
+    DocumentKind kind,
+    _PickResult result,
+  ) async {
+    final controller = ref.read(homeControllerProvider.notifier);
+    try {
+      await controller.uploadDocument(
+        result.title,
+        kind,
+        path: result.path,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Uploaded "${result.title}"')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      final message =
+          e is HomeException ? e.message : 'Failed to upload document';
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    }
   }
 }
 

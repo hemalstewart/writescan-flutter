@@ -141,6 +141,8 @@ class GeneralChatController extends StateNotifier<GeneralChatState> {
       if (created != null) msgs.add(created);
       state = state.copyWith(messages: msgs);
       await _save(msgs);
+      // pull latest from backend to catch assistant replies
+      await _load();
       // ignore: avoid_print
       print('[generalChat] send success (messages=${msgs.length})');
     } catch (e) {

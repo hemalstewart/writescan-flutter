@@ -3,14 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/general_chat_state.dart';
 
-class GeneralChatScreen extends ConsumerWidget {
+class GeneralChatScreen extends ConsumerStatefulWidget {
   const GeneralChatScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GeneralChatScreen> createState() => _GeneralChatScreenState();
+}
+
+class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
+  final _scrollController = ScrollController();
+  int _lastMessageCount = 0;
+
+  void _scrollToBottom(List<ChatMessage> messages) {
+    if (messages.length == _lastMessageCount) return;
+    _lastMessageCount = messages.length;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 80,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final state = ref.watch(generalChatControllerProvider);
     final controller = ref.read(generalChatControllerProvider.notifier);
+    _scrollToBottom(state.messages);
 
     return Scaffold(
       body: Container(
@@ -49,6 +77,7 @@ class GeneralChatScreen extends ConsumerWidget {
                 child: state.isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ListView.builder(
+                        controller: _scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         itemCount: state.messages.length,
                         itemBuilder: (context, index) {
@@ -61,7 +90,8 @@ class GeneralChatScreen extends ConsumerWidget {
                             child: Container(
                               margin: const EdgeInsets.symmetric(vertical: 6),
                               padding: const EdgeInsets.all(12),
-                              constraints: const BoxConstraints(maxWidth: 280),
+                              constraints:
+                                  const BoxConstraints(maxWidth: 280),
                               decoration: BoxDecoration(
                                 color: isUser
                                     ? colors.primary.withValues(alpha: 0.2)
