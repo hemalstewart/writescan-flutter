@@ -15,4 +15,19 @@ class AppConfig {
   /// CodeIgniter backend public root (without /api).
   static const String apiRoot =
       'https://phpstack-1483171-5959376.cloudwaysapps.com';
+
+  /// Public pages.
+  static const String privacyPolicyLight =
+      'https://lakminiint.com/ideamart/bixway/privacy_policy.html';
+  static const String privacyPolicyDark =
+      'https://lakminiint.com/ideamart/bixway/privacy_policy_dark.html';
+  static const String termsLight =
+      'https://lakminiint.com/ideamart/bytehub/ReCon/terms_conditions.php?app_id=24&console=Bixway%20International&name=WriteScan';
+  static const String termsDark = termsLight;
+  static const String moreAppsUrl =
+      'https://play.google.com/store/apps/developer?id=AppMixer';
+  static const String playStorePackage = 'com.appmixer.writescan';
+
+  static String get playStoreLink =>
+      'https://play.google.com/store/apps/details?id=$playStorePackage';
 }

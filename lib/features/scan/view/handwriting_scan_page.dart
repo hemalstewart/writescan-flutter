@@ -48,7 +48,7 @@ class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
     final media = MediaQuery.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Handwriting Scan'),
+        title: const Text('Hand writing Scan'),
         backgroundColor: colors.surface,
         actions: [
           IconButton(

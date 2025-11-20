@@ -31,102 +31,115 @@ class HomeScreen extends ConsumerWidget {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) => SingleChildScrollView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _Header(colors: colors),
-                const SizedBox(height: 18),
-                _QuickActions(
-                  colors: colors,
-                  onAction: (kind) {
-                    if (kind == DocumentKind.csv) {
-                      GoRouter.of(context).push('/scan/csv');
-                    } else if (kind == DocumentKind.handwriting) {
-                      GoRouter.of(context).push('/scan/handwriting');
-                    } else {
-                      GoRouter.of(context).push('/scan', extra: kind);
-                    }
-                  },
-                ),
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: () => GoRouter.of(context).push('/scan/empty'),
-                  icon: const Icon(Icons.note_add_outlined),
-                  label: const Text('New empty document'),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Recent documents',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                        color: colors.onSurface,
-                      ),
+                    const SizedBox(height: 18),
+                    _QuickActions(
+                      colors: colors,
+                      onAction: (kind) {
+                        if (kind == DocumentKind.csv) {
+                          GoRouter.of(context).push('/scan/csv');
+                        } else if (kind == DocumentKind.handwriting) {
+                          GoRouter.of(context).push('/scan/handwriting');
+                        } else {
+                          GoRouter.of(context).push('/scan', extra: kind);
+                        }
+                      },
                     ),
-                    TextButton(
-                      onPressed: () => GoRouter.of(context).push('/documents'),
-                      child: const Text('View all'),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () => GoRouter.of(context).push('/scan/empty'),
+                      icon: const Icon(Icons.note_add_outlined),
+                      label: const Text('New empty document'),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (state.isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else if (state.documents.isEmpty)
-                  _emptyBlock(
-                    colors,
-                    'No documents yet',
-                    'Use quick actions to scan or import files.',
-                  )
-                else
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: state.documents
-                        .map(
-                          (doc) => GestureDetector(
-                            onTap: (doc.path != null || doc.fileUrl != null)
-                                ? () => openDocument(context, doc)
-                                : null,
-                            child: _DocCard(doc: doc, colors: colors),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Recent documents',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                            color: colors.onSurface,
                           ),
-                        )
-                        .toList(),
-                  ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Folders',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                        color: colors.onSurface,
-                      ),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              GoRouter.of(context).push('/documents'),
+                          child: const Text('View all'),
+                        ),
+                      ],
                     ),
-                    TextButton(
-                      onPressed: () => _showCreateFolderDialog(
-                        context,
-                        controller,
+                    const SizedBox(height: 12),
+                    if (state.isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (state.documents.isEmpty)
+                      _emptyBlock(
+                        colors,
+                        'No documents yet',
+                        'Use quick actions to scan or import files.',
+                      )
+                    else
+                      LayoutBuilder(
+                        builder: (context, _) {
+                          final docs = state.documents;
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 220,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: 0.95,
+                                ),
+                            itemCount: docs.length,
+                            itemBuilder: (context, index) {
+                              final doc = docs[index];
+                              return GestureDetector(
+                                onTap: (doc.path != null || doc.fileUrl != null)
+                                    ? () => openDocument(context, doc)
+                                    : null,
+                                child: _DocCard(doc: doc, colors: colors),
+                              );
+                            },
+                          );
+                        },
                       ),
-                      child: const Text('New folder'),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Folders',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                            color: colors.onSurface,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              _showCreateFolderDialog(context, controller),
+                          child: const Text('New folder'),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 120,
                       child: state.folders.isEmpty
                           ? _emptyBlock(
-                              colors, 'No folders', 'Create one to organize files.')
+                              colors,
+                              'No folders',
+                              'Create one to organize files.',
+                            )
                           : ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: state.folders.length,
@@ -175,9 +188,7 @@ class HomeScreen extends ConsumerWidget {
           title: const Text('New folder'),
           content: TextField(
             controller: nameController,
-            decoration: const InputDecoration(
-              labelText: 'Folder name',
-            ),
+            decoration: const InputDecoration(labelText: 'Folder name'),
             autofocus: true,
           ),
           actions: [
@@ -199,9 +210,9 @@ class HomeScreen extends ConsumerWidget {
                       ? e.message
                       : 'Failed to create folder';
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(message)),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(message)));
                   }
                 }
               },
@@ -229,17 +240,28 @@ class HomeScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading:
-                  const Icon(Icons.drive_file_rename_outline, color: Colors.white),
-              title: const Text('Rename', style: TextStyle(color: Colors.white)),
+              leading: const Icon(
+                Icons.drive_file_rename_outline,
+                color: Colors.white,
+              ),
+              title: const Text(
+                'Rename',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _promptFolderRename(context, controller, folder);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+              leading: const Icon(
+                Icons.delete_outline,
+                color: Colors.redAccent,
+              ),
+              title: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.redAccent),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _confirmFolderDelete(context, controller, folder);
@@ -282,15 +304,15 @@ class HomeScreen extends ConsumerWidget {
     try {
       await controller.renameFolder(folder.id, newName);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Folder renamed')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Folder renamed')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -321,15 +343,15 @@ class HomeScreen extends ConsumerWidget {
     try {
       await controller.deleteFolder(folder.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Folder deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Folder deleted')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -355,7 +377,9 @@ class _Header extends StatelessWidget {
             children: [
               Text(
                 'Hello!',
-                style: TextStyle(color: colors.onSurface.withValues(alpha: 0.7)),
+                style: TextStyle(
+                  color: colors.onSurface.withValues(alpha: 0.7),
+                ),
               ),
               Text(
                 'Welcome back to WriteScan',
@@ -399,7 +423,7 @@ class _QuickActions extends StatelessWidget {
       ),
       _QuickAction(
         icon: Icons.draw_rounded,
-        label: 'Handwriting',
+        label: 'Hand writing',
         accent: colors.tertiary,
         kind: DocumentKind.handwriting,
       ),
@@ -434,8 +458,11 @@ class _QuickActions extends StatelessWidget {
 }
 
 class _ActionTile extends StatelessWidget {
-  const _ActionTile(
-      {required this.action, required this.colors, required this.onTap});
+  const _ActionTile({
+    required this.action,
+    required this.colors,
+    required this.onTap,
+  });
 
   final _QuickAction action;
   final ColorScheme colors;
@@ -489,7 +516,7 @@ class _DocCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 170,
+      width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
@@ -506,10 +533,7 @@ class _DocCard extends StatelessWidget {
               const Spacer(),
               Text(
                 doc.size,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
           ),
@@ -533,7 +557,7 @@ class _DocCard extends StatelessWidget {
               ),
               const Icon(Icons.more_vert, color: Colors.white54, size: 18),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -607,10 +631,7 @@ Widget _emptyBlock(ColorScheme colors, String title, String subtitle) {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(color: Colors.white70),
-        ),
+        Text(subtitle, style: const TextStyle(color: Colors.white70)),
       ],
     ),
   );

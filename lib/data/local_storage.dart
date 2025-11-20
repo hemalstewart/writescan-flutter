@@ -6,6 +6,7 @@ class LocalStorage {
   static const _maskKey = 'mask';
   static const _activeKey = 'active';
   static const _sessionKey = 'session_cookie';
+  static const _onboardingKey = 'onboarding_seen';
 
   Future<SharedPreferences> get _prefs async => SharedPreferences.getInstance();
 
@@ -72,5 +73,15 @@ class LocalStorage {
     await prefs.remove(_refKey);
     await prefs.remove(_maskKey);
     await prefs.remove(_activeKey);
+  }
+
+  Future<void> setOnboardingSeen() async {
+    final prefs = await _prefs;
+    await prefs.setBool(_onboardingKey, true);
+  }
+
+  Future<bool> isOnboardingSeen() async {
+    final prefs = await _prefs;
+    return prefs.getBool(_onboardingKey) ?? false;
   }
 }

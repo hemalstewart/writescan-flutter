@@ -22,7 +22,7 @@ class ScanPlaceholderPage extends ConsumerWidget {
       case DocumentKind.ocr:
         return 'Text Extraction';
       case DocumentKind.handwriting:
-        return 'Handwriting Scan';
+        return 'Hand writing Scan';
       case DocumentKind.csv:
         return 'Table/CSV Extraction';
     }

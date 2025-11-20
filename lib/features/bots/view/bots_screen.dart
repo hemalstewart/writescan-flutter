@@ -44,84 +44,92 @@ class BotsScreen extends ConsumerWidget {
                       ),
                     ),
                     Flexible(
-                      child: Wrap(
-                        spacing: 8,
+                      child: OverflowBar(
+                        spacing: 12,
+                        overflowSpacing: 8,
+                        alignment: MainAxisAlignment.end,
                         children: [
                           FilledButton.icon(
-                          onPressed: state.isImporting
-                              ? null
-                              : () async {
-                                  final picked =
-                                      await FilePicker.platform.pickFiles(
-                                    type: FileType.custom,
-                                    allowedExtensions: [
-                                      'pdf',
-                                  'txt',
-                                  'doc',
-                                  'docx',
-                                  'csv',
-                                  'jpeg',
-                                  'jpg',
-                                  'png'
-                                ],
-                              );
-                              if (picked != null &&
-                                  picked.files.single.path != null) {
-                                final path = picked.files.single.path!;
-                                final name = _friendlyName(path);
-                                try {
-                                  await controller.importFromPath(
-                                    path,
-                                    name: name,
-                                  );
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content:
-                                            Text('Created bot from $name'),
-                                      ),
-                                    );
-                                  }
-                                  // refresh documents so the new upload appears on Home
-                                  try {
-                                    await ref
-                                        .read(
-                                          homeControllerProvider.notifier,
-                                        )
-                                        .refresh();
-                                  } catch (_) {}
-                                } catch (e) {
-                                  final message = e is BotsException
-                                      ? e.message
-                                      : 'Failed to import bot';
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(message)),
-                                    );
-                                  }
-                                }
-                                }
-                              },
-                          icon: state.isImporting
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.upload_rounded),
-                          label:
-                              Text(state.isImporting ? 'Uploading...' : 'Upload'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            GoRouter.of(context).push('/bots/create');
-                          },
-                          icon: const Icon(Icons.add_circle_outline),
-                          label: const Text('From documents'),
-                        ),
+                            onPressed: state.isImporting
+                                ? null
+                                : () async {
+                                    final picked = await FilePicker.platform
+                                        .pickFiles(
+                                          type: FileType.custom,
+                                          allowedExtensions: [
+                                            'pdf',
+                                            'txt',
+                                            'doc',
+                                            'docx',
+                                            'csv',
+                                            'jpeg',
+                                            'jpg',
+                                            'png',
+                                          ],
+                                        );
+                                    if (picked != null &&
+                                        picked.files.single.path != null) {
+                                      final path = picked.files.single.path!;
+                                      final name = _friendlyName(path);
+                                      try {
+                                        await controller.importFromPath(
+                                          path,
+                                          name: name,
+                                        );
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Created bot from $name',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        // refresh documents so the new upload appears on Home
+                                        try {
+                                          await ref
+                                              .read(
+                                                homeControllerProvider.notifier,
+                                              )
+                                              .refresh();
+                                        } catch (_) {}
+                                      } catch (e) {
+                                        final message = e is BotsException
+                                            ? e.message
+                                            : 'Failed to import bot';
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(content: Text(message)),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  },
+                            icon: state.isImporting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.upload_rounded),
+                            label: Text(
+                              state.isImporting ? 'Uploading...' : 'Upload',
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              GoRouter.of(context).push('/bots/create');
+                            },
+                            icon: const Icon(Icons.add_circle_outline),
+                            label: const Text('From documents'),
+                          ),
                         ],
                       ),
                     ),
@@ -134,31 +142,31 @@ class BotsScreen extends ConsumerWidget {
                       : GridView.builder(
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 0.7,
-                          ),
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 0.7,
+                              ),
                           itemCount: state.bots.length,
                           itemBuilder: (context, index) {
                             final bot = state.bots[index];
                             return GestureDetector(
                               onTap: () {
-                                GoRouter.of(context).push('/botChat', extra: {
-                                  'id': bot.id,
-                                  'name': bot.name,
-                                  'source': bot.source,
-                                  'tags': bot.tags,
-                                });
+                                GoRouter.of(context).push(
+                                  '/botChat',
+                                  extra: {
+                                    'id': bot.id,
+                                    'name': bot.name,
+                                    'source': bot.source,
+                                    'tags': bot.tags,
+                                  },
+                                );
                               },
                               child: _BotCard(
                                 bot: bot,
                                 colors: colors,
-                                onDelete: () => _confirmDeleteBot(
-                                  context,
-                                  controller,
-                                  bot,
-                                ),
+                                onDelete: () =>
+                                    _confirmDeleteBot(context, controller, bot),
                               ),
                             );
                           },
@@ -198,15 +206,15 @@ class BotsScreen extends ConsumerWidget {
     try {
       await controller.deleteBot(bot.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${bot.name} deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('${bot.name} deleted')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -250,10 +258,7 @@ class _BotCard extends StatelessWidget {
                   if (value == 'delete') onDelete();
                 },
                 itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Delete bot'),
-                  ),
+                  PopupMenuItem(value: 'delete', child: Text('Delete bot')),
                 ],
               ),
             ],
@@ -276,24 +281,28 @@ class _BotCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white60, fontSize: 13),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: bot.tags
-                .map(
-                  (tag) => Chip(
-                    visualDensity:
-                        const VisualDensity(horizontal: -4, vertical: -2),
-                    backgroundColor: Colors.white.withValues(alpha: 0.06),
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    side: BorderSide.none,
-                    padding: EdgeInsets.zero,
-                    label: Text(tag, overflow: TextOverflow.ellipsis),
-                  ),
-                )
-                .toList(),
-          ),
+          if (bot.tags.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: bot.tags
+                  .map(
+                    (tag) => Chip(
+                      visualDensity: const VisualDensity(
+                        horizontal: -4,
+                        vertical: -2,
+                      ),
+                      backgroundColor: Colors.white.withValues(alpha: 0.06),
+                      labelStyle: const TextStyle(color: Colors.white70),
+                      side: BorderSide.none,
+                      padding: EdgeInsets.zero,
+                      label: Text(tag, overflow: TextOverflow.ellipsis),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
       ),
     );

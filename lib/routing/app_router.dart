@@ -12,7 +12,9 @@ import '../features/bots/view/bot_chat_page.dart';
 import '../features/general_chat/view/general_chat_screen.dart';
 import '../features/home/view/home_screen.dart';
 import '../features/more/view/more_screen.dart';
+import '../features/onboarding/view/onboarding_page.dart';
 import '../features/shell/view/app_shell.dart';
+import '../features/splash/view/splash_page.dart';
 import '../features/scan/view/scan_placeholder.dart';
 import '../features/scan/view/csv_scan_page.dart';
 import '../features/scan/view/handwriting_scan_page.dart';
@@ -28,24 +30,40 @@ final routerProvider = Provider<GoRouter>((ref) {
     ref.watch(authControllerProvider.notifier).stream,
   );
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/splash',
     refreshListenable: refresh,
     redirect: (context, state) {
       // Simple guard: if not active, redirect to auth.
       final isAuthed =
           ref.read(authControllerProvider).stage == AuthStage.loggedIn;
-      final goingAuth = state.uri.path == '/auth';
-      if (!isAuthed && !goingAuth) return '/auth';
-      if (isAuthed && goingAuth) return '/home';
+      final path = state.uri.path;
+      const publicPaths = {'/auth', '/splash', '/onboarding'};
+      if (!isAuthed && !publicPaths.contains(path)) {
+        return '/auth';
+      }
+      if (isAuthed && (path == '/auth' || path == '/onboarding')) {
+        return '/home';
+      }
       return null;
     },
     routes: [
       GoRoute(
+        path: '/splash',
+        name: 'splash',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: SplashPage()),
+      ),
+      GoRoute(
         path: '/auth',
         name: 'auth',
-        pageBuilder: (context, state) => const NoTransitionPage(
-          child: AuthPage(),
-        ),
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: AuthPage()),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: OnboardingPage()),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
@@ -53,16 +71,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/home',
             name: 'home',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: HomeScreen()),
           ),
           GoRoute(
             path: '/documents',
             name: 'documents',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: DocumentsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DocumentsScreen()),
           ),
           GoRoute(
             path: '/documents/view',
@@ -100,23 +116,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/bots',
             name: 'bots',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: BotsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: BotsScreen()),
           ),
           GoRoute(
             path: '/bots/create',
             name: 'createBot',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: CreateBotScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: CreateBotScreen()),
           ),
           GoRoute(
             path: '/chat',
             name: 'chat',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: GeneralChatScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: GeneralChatScreen()),
           ),
           GoRoute(
             path: '/botChat',
@@ -130,8 +143,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 final tags = (bot['tags'] as List<dynamic>? ?? [])
                     .map((e) => e.toString())
                     .toList();
-                final botObj =
-                    Bot(id: id, name: name, source: source, tags: tags);
+                final botObj = Bot(
+                  id: id,
+                  name: name,
+                  source: source,
+                  tags: tags,
+                );
                 return NoTransitionPage(child: BotChatPage(bot: botObj));
               }
               return const NoTransitionPage(child: GeneralChatScreen());
@@ -140,9 +157,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/more',
             name: 'more',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: MoreScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: MoreScreen()),
           ),
           GoRoute(
             path: '/scan',
@@ -155,23 +171,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/scan/csv',
             name: 'scanCsv',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: CsvScanPage(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: CsvScanPage()),
           ),
           GoRoute(
             path: '/scan/handwriting',
             name: 'scanHandwriting',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: HandwritingScanPage(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: HandwritingScanPage()),
           ),
           GoRoute(
             path: '/scan/empty',
             name: 'scanEmpty',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: EmptyDocumentPage(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: EmptyDocumentPage()),
           ),
         ],
       ),
