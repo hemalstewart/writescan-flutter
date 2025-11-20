@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'package:http/http.dart' as http;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../data/home_api.dart';
 import '../data/home_local_data_source.dart';
+import '../../../data/local_storage.dart';
 
 class Folder {
   Folder({required this.id, required this.name, this.count = 0, this.color});
@@ -484,11 +487,12 @@ class HomeController extends StateNotifier<HomeState> {
     final documents = docsRaw
         .map((e) => DocumentItem.fromJson(Map<String, dynamic>.from(e)))
         .toList();
+    final cachedDocs = await _cacheDocuments(documents);
     final folders = foldersRaw
         .map((e) => Folder.fromJson(Map<String, dynamic>.from(e)))
         .toList();
     state = state.copyWith(
-      documents: documents,
+      documents: cachedDocs,
       folders: folders,
       isLoading: false,
     );
@@ -529,6 +533,55 @@ class HomeController extends StateNotifier<HomeState> {
 
   Future<void> _persist() async {
     await _store.save(state.documents, state.folders);
+  }
+
+  Future<List<DocumentItem>> _cacheDocuments(List<DocumentItem> docs) async {
+    final storage = LocalStorage();
+    final cookie = await storage.getSessionCookie();
+    final dir = await getApplicationSupportDirectory();
+    final cacheDir = Directory(p.join(dir.path, 'cached_docs'));
+    if (!cacheDir.existsSync()) {
+      cacheDir.createSync(recursive: true);
+    }
+
+    final updated = <DocumentItem>[];
+    for (final doc in docs) {
+      var current = doc;
+      if (doc.path != null && File(doc.path!).existsSync()) {
+        updated.add(current);
+        continue;
+      }
+      final url = doc.fileUrl;
+      if (url == null || url.isEmpty) {
+        updated.add(current);
+        continue;
+      }
+      try {
+        final ext = p.extension(url);
+        final name = doc.id.isNotEmpty
+            ? doc.id
+            : p.basenameWithoutExtension(url);
+        final localPath = p.join(cacheDir.path, '$name$ext');
+        final file = File(localPath);
+        if (!file.existsSync()) {
+          final resp = await http.get(
+            Uri.parse(url),
+            headers: {if (cookie != null) 'Cookie': cookie},
+          );
+          if (resp.statusCode >= 200 && resp.statusCode < 300) {
+            await file.writeAsBytes(resp.bodyBytes);
+          } else {
+            updated.add(current);
+            continue;
+          }
+        }
+        current = current.copyWith(path: file.path);
+      } catch (_) {
+        // ignore caching errors
+      }
+      updated.add(current);
+    }
+    return updated;
   }
 
   File _resolveFile(String rawPath) {
