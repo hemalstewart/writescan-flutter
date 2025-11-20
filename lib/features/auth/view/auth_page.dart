@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -16,6 +17,7 @@ class AuthPage extends ConsumerStatefulWidget {
 class _AuthPageState extends ConsumerState<AuthPage> {
   final _mobileController = TextEditingController();
   final _otpController = TextEditingController();
+  bool _autoSentPhone = false;
 
   @override
   void dispose() {
@@ -29,6 +31,11 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final state = ref.watch(authControllerProvider);
     final controller = ref.read(authControllerProvider.notifier);
     final colors = Theme.of(context).colorScheme;
+
+    if (state.stage == AuthStage.enterPhone &&
+        _mobileController.text.trim().length < 10) {
+      _autoSentPhone = false;
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (state.message != null && state.message!.isNotEmpty) {
@@ -90,6 +97,15 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                               controller: _mobileController,
                               onSend: (value) =>
                                   controller.sendOtp(value.trim()),
+                              onChanged: (value) {
+                                final trimmed = value.trim();
+                                if (trimmed.length >= 10 && !_autoSentPhone) {
+                                  _autoSentPhone = true;
+                                  controller.sendOtp(trimmed);
+                                } else if (trimmed.length < 10) {
+                                  _autoSentPhone = false;
+                                }
+                              },
                             )
                           : _OtpCard(
                               colors: colors,
@@ -122,11 +138,13 @@ class _PhoneCard extends StatelessWidget {
     required this.colors,
     required this.controller,
     required this.onSend,
+    this.onChanged,
   });
 
   final ColorScheme colors;
   final TextEditingController controller;
   final ValueChanged<String> onSend;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -183,13 +201,18 @@ class _PhoneCard extends StatelessWidget {
           TextField(
             controller: controller,
             keyboardType: TextInputType.phone,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(10),
+              FilteringTextInputFormatter.digitsOnly,
+            ],
             decoration: const InputDecoration(
               labelText: 'Mobile number',
               prefixText: '+94 ',
-              hintText: '7XXXXXXXX',
+              hintText: '07XXXXXXXX',
             ),
             style: const TextStyle(color: Colors.white),
             onSubmitted: onSend,
+            onChanged: onChanged,
           ),
           const SizedBox(height: 16),
           ElevatedButton(
