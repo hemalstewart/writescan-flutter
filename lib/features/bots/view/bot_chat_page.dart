@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/bot_chat_controller.dart';
 import '../state/bots_state.dart';
+import '../../../app_theme.dart';
 
 class BotChatPage extends ConsumerStatefulWidget {
   const BotChatPage({super.key, required this.bot});
@@ -40,7 +41,9 @@ class _BotChatPageState extends ConsumerState<BotChatPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final state = ref.watch(botChatControllerProvider(widget.bot.id));
-    final controller = ref.read(botChatControllerProvider(widget.bot.id).notifier);
+    final controller = ref.read(
+      botChatControllerProvider(widget.bot.id).notifier,
+    );
     _scrollToBottom(state.messages);
 
     return Scaffold(
@@ -49,12 +52,8 @@ class _BotChatPageState extends ConsumerState<BotChatPage> {
         backgroundColor: colors.surface,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: Column(
           children: [
@@ -78,21 +77,20 @@ class _BotChatPageState extends ConsumerState<BotChatPage> {
                           child: Container(
                             margin: const EdgeInsets.symmetric(vertical: 6),
                             padding: const EdgeInsets.all(12),
-                            constraints:
-                                const BoxConstraints(maxWidth: 280),
+                            constraints: const BoxConstraints(maxWidth: 280),
                             decoration: BoxDecoration(
                               color: isUser
                                   ? colors.primary.withValues(alpha: 0.2)
-                                  : Colors.white.withValues(alpha: 0.05),
+                                  : colors.onSurface.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.06),
+                                color: colors.onSurface.withValues(alpha: 0.06),
                               ),
                             ),
                             child: Text(
                               m.text,
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: colors.onSurface.withValues(alpha: 0.9),
                               ),
                             ),
                           ),
@@ -151,7 +149,7 @@ class _BotChatInputState extends State<_BotChatInput> {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.2),
         border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          top: BorderSide(color: colors.onSurface.withValues(alpha: 0.08)),
         ),
       ),
       child: Row(
@@ -162,18 +160,19 @@ class _BotChatInputState extends State<_BotChatInput> {
               decoration: InputDecoration(
                 hintText: 'Message this bot...',
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.06),
+                fillColor: colors.onSurface.withValues(alpha: 0.06),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(
+                    color: colors.onSurface.withValues(alpha: 0.08),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(color: colors.primary),
                 ),
               ),
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: colors.onSurface),
               onSubmitted: (_) => _handleSend(colors),
             ),
           ),
@@ -182,15 +181,15 @@ class _BotChatInputState extends State<_BotChatInput> {
             backgroundColor: colors.primary,
             child: IconButton(
               icon: _sending
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: colors.onSurface,
                       ),
                     )
-                  : const Icon(Icons.send_rounded, color: Colors.white),
+                  : Icon(Icons.send_rounded, color: colors.onSurface),
               onPressed: _sending ? null : () => _handleSend(colors),
             ),
           ),

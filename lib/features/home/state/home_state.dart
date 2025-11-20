@@ -7,12 +7,7 @@ import '../data/home_api.dart';
 import '../data/home_local_data_source.dart';
 
 class Folder {
-  Folder({
-    required this.id,
-    required this.name,
-    this.count = 0,
-    this.color,
-  });
+  Folder({required this.id, required this.name, this.count = 0, this.color});
 
   final String id;
   final String name;
@@ -29,22 +24,20 @@ class Folder {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'count': count,
-        'color': color,
-      };
+    'id': id,
+    'name': name,
+    'count': count,
+    'color': color,
+  };
 
   factory Folder.fromJson(Map<String, dynamic> json) => Folder(
-        id: _idFrom(json['id'] ?? json['folder_id'] ?? json['uuid']),
-        name: (json['name'] ?? json['title'] ?? 'Untitled').toString(),
-        count: _countFrom(
-          json['count'] ??
-              json['documents_count'] ??
-              json['document_count'],
-        ),
-        color: json['color'] as String? ?? json['colour'] as String?,
-      );
+    id: _idFrom(json['id'] ?? json['folder_id'] ?? json['uuid']),
+    name: (json['name'] ?? json['title'] ?? 'Untitled').toString(),
+    count: _countFrom(
+      json['count'] ?? json['documents_count'] ?? json['document_count'],
+    ),
+    color: json['color'] as String? ?? json['colour'] as String?,
+  );
 }
 
 class DocumentItem {
@@ -84,7 +77,8 @@ class DocumentItem {
     if (mimeType != null && mimeType!.toLowerCase().contains('pdf')) {
       return true;
     }
-    bool hasPdf(String? value) => value?.toLowerCase().endsWith('.pdf') ?? false;
+    bool hasPdf(String? value) =>
+        value?.toLowerCase().endsWith('.pdf') ?? false;
     return hasPdf(title) || hasPdf(path) || hasPdf(fileUrl);
   }
 
@@ -122,24 +116,25 @@ class DocumentItem {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'size': size,
-        'dateLabel': dateLabel,
-        'folderId': folderId,
-        'kind': kind.name,
-        'path': path,
-        'fileUrl': fileUrl,
-        'createdAt': createdAt?.toIso8601String(),
-        'updatedAt': updatedAt?.toIso8601String(),
-        'status': status,
-        'mimeType': mimeType,
-        'geminiText': geminiText,
-        'sizeBytes': sizeBytes,
-      };
+    'id': id,
+    'title': title,
+    'size': size,
+    'dateLabel': dateLabel,
+    'folderId': folderId,
+    'kind': kind.name,
+    'path': path,
+    'fileUrl': fileUrl,
+    'createdAt': createdAt?.toIso8601String(),
+    'updatedAt': updatedAt?.toIso8601String(),
+    'status': status,
+    'mimeType': mimeType,
+    'geminiText': geminiText,
+    'sizeBytes': sizeBytes,
+  };
 
   factory DocumentItem.fromJson(Map<String, dynamic> json) {
-    final rawSize = json['size'] ??
+    final rawSize =
+        json['size'] ??
         json['size_label'] ??
         json['sizeLabel'] ??
         json['size_bytes'] ??
@@ -161,16 +156,15 @@ class DocumentItem {
             json['timestamp'],
       ),
       folderId: _nullableString(json['folderId'] ?? json['folder_id']),
-      kind:
-          _kindFromRaw(json['kind'] ?? json['type'] ?? json['document_type']),
+      kind: _kindFromRaw(json['kind'] ?? json['type'] ?? json['document_type']),
       path: json['path'] as String? ?? json['local_path'] as String?,
       fileUrl: json['fileUrl'] as String? ?? json['file_url'] as String?,
       createdAt: _dateFromRaw(createdRaw),
       updatedAt: _dateFromRaw(updatedRaw),
       status: json['status'] as String?,
-      mimeType:
-          json['mimeType'] as String? ?? json['mime_type'] as String?,
-      geminiText: json['geminiText'] as String? ??
+      mimeType: json['mimeType'] as String? ?? json['mime_type'] as String?,
+      geminiText:
+          json['geminiText'] as String? ??
           json['gemini_text'] as String? ??
           json['summary'] as String?,
       sizeBytes: _sizeBytes(rawSize),
@@ -204,20 +198,17 @@ class HomeState {
   }
 }
 
-final homeControllerProvider =
-    StateNotifierProvider<HomeController, HomeState>((ref) {
-  return HomeController();
-});
+final homeControllerProvider = StateNotifierProvider<HomeController, HomeState>(
+  (ref) {
+    return HomeController();
+  },
+);
 
 class HomeController extends StateNotifier<HomeState> {
   HomeController()
-      : super(
-          HomeState(
-            documents: const [],
-            folders: const [],
-            isLoading: true,
-          ),
-        ) {
+    : super(
+        HomeState(documents: const [], folders: const [], isLoading: true),
+      ) {
     _load();
   }
 
@@ -265,10 +256,12 @@ class HomeController extends StateNotifier<HomeState> {
         file: file,
         folderId: folderId,
       );
-      final created =
-          DocumentItem.fromJson(Map<String, dynamic>.from(response));
-      final remaining =
-          state.documents.where((doc) => doc.id != tempId).toList();
+      final created = DocumentItem.fromJson(
+        Map<String, dynamic>.from(response),
+      );
+      final remaining = state.documents
+          .where((doc) => doc.id != tempId)
+          .toList();
       state = state.copyWith(documents: [created, ...remaining]);
       await _persist();
       await _syncFromRemoteSilently();
@@ -288,8 +281,7 @@ class HomeController extends StateNotifier<HomeState> {
     }
     try {
       final response = await _api.createFolder(trimmed);
-      final folder =
-          Folder.fromJson(Map<String, dynamic>.from(response));
+      final folder = Folder.fromJson(Map<String, dynamic>.from(response));
       state = state.copyWith(folders: [folder, ...state.folders]);
       await _persist();
     } catch (error) {
@@ -364,8 +356,9 @@ class HomeController extends StateNotifier<HomeState> {
     await _persist();
     try {
       final response = await _api.updateDocument(id, name: trimmed);
-      final updated =
-          DocumentItem.fromJson(Map<String, dynamic>.from(response));
+      final updated = DocumentItem.fromJson(
+        Map<String, dynamic>.from(response),
+      );
       await _replaceDocument(updated);
       await _syncFromRemoteSilently();
     } catch (error) {
@@ -383,10 +376,10 @@ class HomeController extends StateNotifier<HomeState> {
     state = state.copyWith(documents: docs);
     await _persist();
     try {
-      final response =
-          await _api.updateDocument(id, folderId: folderId ?? '');
-      final updated =
-          DocumentItem.fromJson(Map<String, dynamic>.from(response));
+      final response = await _api.updateDocument(id, folderId: folderId ?? '');
+      final updated = DocumentItem.fromJson(
+        Map<String, dynamic>.from(response),
+      );
       await _replaceDocument(updated);
       await _syncFromRemoteSilently();
     } catch (error) {
@@ -632,8 +625,7 @@ DateTime? _dateFromRaw(dynamic raw) {
   if (raw is DateTime) return raw;
   if (raw is int) {
     final millis = raw < 1000000000000 ? raw * 1000 : raw;
-    return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true)
-        .toLocal();
+    return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal();
   }
   if (raw is String && raw.isNotEmpty) {
     return DateTime.tryParse(raw);
@@ -674,8 +666,7 @@ int? _sizeBytes(dynamic raw) {
     final trimmed = raw.trim().toLowerCase();
     final numeric = double.tryParse(trimmed);
     if (numeric != null) return numeric.toInt();
-    final match = RegExp(r'([0-9.]+)\s*(kb|mb|gb|bytes)')
-        .firstMatch(trimmed);
+    final match = RegExp(r'([0-9.]+)\s*(kb|mb|gb|bytes)').firstMatch(trimmed);
     if (match != null) {
       final value = double.tryParse(match.group(1) ?? '');
       final unit = match.group(2);

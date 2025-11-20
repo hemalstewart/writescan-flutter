@@ -25,9 +25,7 @@ class HomeApi {
       final data = body['data'] as List<dynamic>? ?? [];
       return data.whereType<Map<String, dynamic>>().toList();
     }
-    throw HomeApiException(
-      'Failed to load documents (${res.statusCode})',
-    );
+    throw HomeApiException('Failed to load documents (${res.statusCode})');
   }
 
   Future<List<Map<String, dynamic>>> fetchFolders() async {
@@ -43,16 +41,15 @@ class HomeApi {
     throw HomeApiException('Failed to load folders (${res.statusCode})');
   }
 
-  Future<Map<String, dynamic>> createFolder(String name,
-      {String? color}) async {
+  Future<Map<String, dynamic>> createFolder(
+    String name, {
+    String? color,
+  }) async {
     final uri = Uri.parse('${AppConfig.apiBase}/folders');
     final cookie = await _storage.getSessionCookie();
     final res = await _client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        ..._headers(cookie),
-      },
+      headers: {'Content-Type': 'application/json', ..._headers(cookie)},
       body: jsonEncode({
         'name': name,
         if (color != null && color.isNotEmpty) 'color': color,
@@ -103,10 +100,7 @@ class HomeApi {
     final cookie = await _storage.getSessionCookie();
     final res = await _client.patch(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        ..._headers(cookie),
-      },
+      headers: {'Content-Type': 'application/json', ..._headers(cookie)},
       body: jsonEncode({'name': name}),
     );
     _debugLog('folders.update', res);
@@ -143,10 +137,7 @@ class HomeApi {
     };
     final res = await _client.patch(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        ..._headers(cookie),
-      },
+      headers: {'Content-Type': 'application/json', ..._headers(cookie)},
       body: jsonEncode(body),
     );
     _debugLog('documents.update', res);
@@ -181,16 +172,12 @@ class HomeApi {
   }
 
   Map<String, String> _headers(String? cookie) {
-    return {
-      if (cookie != null) 'Cookie': cookie,
-    };
+    return {if (cookie != null) 'Cookie': cookie};
   }
 
   void _debugLog(String tag, http.Response response) {
     // ignore: avoid_print
-    print(
-      '[api:$tag] status=${response.statusCode} body=${response.body}',
-    );
+    print('[api:$tag] status=${response.statusCode} body=${response.body}');
   }
 }
 

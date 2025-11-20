@@ -19,11 +19,11 @@ class ChatMessage {
   final DateTime timestamp;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'text': text,
-        'isUser': isUser,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'id': id,
+    'text': text,
+    'isUser': isUser,
+    'timestamp': timestamp.toIso8601String(),
+  };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     final text = json['text'] ?? json['content'] ?? '';
@@ -65,12 +65,12 @@ class GeneralChatState {
 
 final generalChatControllerProvider =
     StateNotifierProvider<GeneralChatController, GeneralChatState>((ref) {
-  return GeneralChatController();
-});
+      return GeneralChatController();
+    });
 
 class GeneralChatController extends StateNotifier<GeneralChatState> {
   GeneralChatController()
-      : super(const GeneralChatState(messages: [], isLoading: true)) {
+    : super(const GeneralChatState(messages: [], isLoading: true)) {
     _load();
   }
 

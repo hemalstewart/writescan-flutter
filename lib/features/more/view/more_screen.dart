@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app_theme.dart';
+
 import '../../../config/app_config.dart';
 import '../../auth/auth_controller.dart';
 import '../../home/state/home_state.dart';
@@ -81,12 +83,8 @@ class MoreScreen extends ConsumerWidget {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: LayoutBuilder(
@@ -98,7 +96,7 @@ class MoreScreen extends ConsumerWidget {
                   Text(
                     'More features',
                     style: TextStyle(
-                      color: colors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                     ),
@@ -114,7 +112,7 @@ class MoreScreen extends ConsumerWidget {
                   Text(
                     'Settings',
                     style: TextStyle(
-                      color: colors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                     ),
@@ -253,8 +251,8 @@ class _QuickActionCard extends StatelessWidget {
                 children: [
                   Text(
                     action.title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
@@ -262,12 +260,22 @@ class _QuickActionCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     action.subtitle,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.white54),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
           ],
         ),
       ),
@@ -308,16 +316,21 @@ class _SettingTile extends StatelessWidget {
       ),
       title: Text(
         item.title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
           fontWeight: FontWeight.w700,
         ),
       ),
       subtitle: Text(
         item.subtitle,
-        style: const TextStyle(color: Colors.white70),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+      ),
     );
   }
 }

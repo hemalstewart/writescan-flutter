@@ -37,10 +37,12 @@ class AppShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF0B0B16),
+          color: colors.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: Colors.black.withValues(
+                alpha: colors.brightness == Brightness.dark ? 0.3 : 0.1,
+              ),
               blurRadius: 12,
               offset: const Offset(0, -4),
             ),
@@ -51,8 +53,7 @@ class AppShell extends StatelessWidget {
           child: NavigationBar(
             height: 68,
             selectedIndex: index,
-            onDestinationSelected: (idx) =>
-                router.go(_routeFromIndex(idx)),
+            onDestinationSelected: (idx) => router.go(_routeFromIndex(idx)),
             labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
             backgroundColor: Colors.transparent,
             indicatorColor: colors.primary.withValues(alpha: 0.18),

@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../data/local_storage.dart';
 import '../../home/state/home_state.dart';
 import '../../../utils/open_document.dart';
+import '../../../app_theme.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   const DocumentsScreen({super.key, this.folderId, this.folderName});
@@ -67,7 +68,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           .where(
             (d) =>
                 d.title.toLowerCase().contains(_query) ||
-                (folderMap[d.folderId]?.toLowerCase().contains(_query) ?? false),
+                (folderMap[d.folderId]?.toLowerCase().contains(_query) ??
+                    false),
           )
           .toList();
     }
@@ -82,10 +84,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       appBar: AppBar(
         title: Text(
           widget.folderId == null
-              ? (_selectionMode ? '${_selectedIds.length} selected' : 'Documents')
+              ? (_selectionMode
+                    ? '${_selectedIds.length} selected'
+                    : 'Documents')
               : (_selectionMode
-                  ? '${_selectedIds.length} selected'
-                  : widget.folderName ?? 'Folder'),
+                    ? '${_selectedIds.length} selected'
+                    : widget.folderName ?? 'Folder'),
         ),
         leading: _selectionMode
             ? IconButton(
@@ -122,54 +126,55 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 ),
               ]
             : [
-          IconButton(
-            icon: Icon(_showSearch ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _showSearch = !_showSearch;
-                if (!_showSearch) {
-                  _searchController.clear();
-                }
-              });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => controller.refresh(),
-          ),
-          if (widget.folderId != null)
-            PopupMenuButton<String>(
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'rename', child: Text('Rename folder')),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Text('Delete folder'),
+                IconButton(
+                  icon: Icon(_showSearch ? Icons.close : Icons.search),
+                  onPressed: () {
+                    setState(() {
+                      _showSearch = !_showSearch;
+                      if (!_showSearch) {
+                        _searchController.clear();
+                      }
+                    });
+                  },
                 ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () => controller.refresh(),
+                ),
+                if (widget.folderId != null)
+                  PopupMenuButton<String>(
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: 'rename',
+                        child: Text('Rename folder'),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Delete folder'),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      if (value == 'rename') {
+                        _renameCurrentFolder();
+                      } else if (value == 'delete') {
+                        _deleteCurrentFolder();
+                      }
+                    },
+                  ),
               ],
-              onSelected: (value) {
-                if (value == 'rename') {
-                  _renameCurrentFolder();
-                } else if (value == 'delete') {
-                  _deleteCurrentFolder();
-                }
-              },
-            ),
-        ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: Column(
           children: [
             if (_showSearch)
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: TextField(
                   controller: _searchController,
                   decoration: const InputDecoration(
@@ -210,59 +215,70 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                           ].join(' • ');
 
                           return Card(
-                            color: Colors.white.withValues(alpha: 0.05),
+                            color: AppTheme.panelColor(colors),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
-                            ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor:
-                                      colors.primary.withValues(alpha: 0.16),
-                                  child: Icon(
-                                    _iconForKind(doc.kind),
-                                    color: colors.primary,
-                                  ),
-                                ),
-                                title: Text(
-                                  doc.title,
-                                  style: TextStyle(
-                                    color: colors.onSurface,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  subtitle,
-                                  style:
-                                      const TextStyle(color: Colors.white70),
-                                ),
-                                trailing: _selectionMode
-                                    ? Checkbox(
-                                        value: _selectedIds.contains(doc.id),
-                                        onChanged: (_) =>
-                                            _toggleSelection(doc.id),
-                                      )
-                                    : IconButton(
-                                        icon: const Icon(Icons.more_vert,
-                                            color: Colors.white70),
-                                        onPressed: () =>
-                                            _showActions(context, doc),
-                                      ),
-                                onTap: () {
-                                  if (_selectionMode) {
-                                    _toggleSelection(doc.id);
-                                  } else {
-                                    openDocument(context, doc);
-                                  }
-                                },
-                                onLongPress: () {
-                                  if (!_selectionMode) {
-                                    setState(() {
-                                      _selectionMode = true;
-                                      _selectedIds.add(doc.id);
-                                    });
-                                  }
-                                },
+                              side: BorderSide(
+                                color: AppTheme.panelBorder(colors),
                               ),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: colors.primary.withValues(
+                                  alpha: 0.16,
+                                ),
+                                child: Icon(
+                                  _iconForKind(doc.kind),
+                                  color: colors.primary,
+                                ),
+                              ),
+                              title: Text(
+                                doc.title,
+                                style: TextStyle(
+                                  color: colors.onSurface,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: Text(
+                                subtitle,
+                                style: TextStyle(
+                                  color: colors.onSurface.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
+                              ),
+                              trailing: _selectionMode
+                                  ? Checkbox(
+                                      value: _selectedIds.contains(doc.id),
+                                      onChanged: (_) =>
+                                          _toggleSelection(doc.id),
+                                    )
+                                  : IconButton(
+                                      icon: Icon(
+                                        Icons.more_vert,
+                                        color: colors.onSurface.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                      ),
+                                      onPressed: () =>
+                                          _showActions(context, doc),
+                                    ),
+                              onTap: () {
+                                if (_selectionMode) {
+                                  _toggleSelection(doc.id);
+                                } else {
+                                  openDocument(context, doc);
+                                }
+                              },
+                              onLongPress: () {
+                                if (!_selectionMode) {
+                                  setState(() {
+                                    _selectionMode = true;
+                                    _selectedIds.add(doc.id);
+                                  });
+                                }
+                              },
+                            ),
                           );
                         },
                         separatorBuilder: (context, _) =>
@@ -277,8 +293,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       floatingActionButton: widget.folderId == null
           ? FloatingActionButton.extended(
               onPressed: () {
-                GoRouter.of(context)
-                    .push('/scan', extra: DocumentKind.normal);
+                GoRouter.of(context).push('/scan', extra: DocumentKind.normal);
               },
               icon: const Icon(Icons.document_scanner_rounded),
               label: const Text('Scan'),
@@ -300,20 +315,25 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.drive_file_rename_outline,
-                    color: Colors.white),
-                title: const Text('Rename',
-                    style: TextStyle(color: Colors.white)),
+                leading: const Icon(
+                  Icons.drive_file_rename_outline,
+                  color: Colors.white,
+                ),
+                title: const Text(
+                  'Rename',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _promptRename(doc);
                 },
               ),
               ListTile(
-                leading:
-                    const Icon(Icons.folder_open, color: Colors.white),
-                title: const Text('Move to folder',
-                    style: TextStyle(color: Colors.white)),
+                leading: const Icon(Icons.folder_open, color: Colors.white),
+                title: const Text(
+                  'Move to folder',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _showMoveSheet(doc);
@@ -321,8 +341,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Delete',
-                    style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _confirmDelete(doc);
@@ -343,9 +365,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         title: const Text('Rename document'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-          ),
+          decoration: const InputDecoration(labelText: 'Name'),
           autofocus: true,
         ),
         actions: [
@@ -366,14 +386,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           .read(homeControllerProvider.notifier)
           .renameDocument(doc.id, result);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document renamed')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Document renamed')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -392,15 +412,19 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.clear_all, color: Colors.white),
-                title: const Text('No folder',
-                    style: TextStyle(color: Colors.white)),
+                title: const Text(
+                  'No folder',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () => Navigator.pop(context, null),
               ),
               for (final folder in folders)
                 ListTile(
                   leading: const Icon(Icons.folder, color: Colors.white),
-                  title: Text(folder.name,
-                      style: const TextStyle(color: Colors.white)),
+                  title: Text(
+                    folder.name,
+                    style: const TextStyle(color: Colors.white),
+                  ),
                   onTap: () => Navigator.pop(context, folder.id),
                 ),
             ],
@@ -414,14 +438,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           .read(homeControllerProvider.notifier)
           .moveDocument(doc.id, folderId: selected);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document updated')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Document updated')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -431,7 +455,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Delete document?'),
         content: const Text(
-            'This will move the document to the archive on the server.'),
+          'This will move the document to the archive on the server.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -448,14 +473,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     try {
       await ref.read(homeControllerProvider.notifier).deleteDocument(doc.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document deleted')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Document deleted')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -496,13 +521,19 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       final files = <XFile>[];
       for (final doc in docs) {
         final file = await _resolveFile(doc);
-        files.add(XFile(file.path, mimeType: doc.mimeType, name: p.basename(file.path)));
+        files.add(
+          XFile(file.path, mimeType: doc.mimeType, name: p.basename(file.path)),
+        );
       }
       if (files.isNotEmpty) {
-        final renderBox = mounted ? context.findRenderObject() as RenderBox? : null;
+        final renderBox = mounted
+            ? context.findRenderObject() as RenderBox?
+            : null;
         await Share.shareXFiles(
           files,
-          text: docs.length == 1 ? docs.first.title : '${docs.length} documents',
+          text: docs.length == 1
+              ? docs.first.title
+              : '${docs.length} documents',
           sharePositionOrigin: renderBox == null
               ? null
               : Rect.fromLTWH(
@@ -515,9 +546,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not share: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not share: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSharing = false);
@@ -533,9 +564,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       throw Exception('Document file not available.');
     }
     final cookie = await LocalStorage().getSessionCookie();
-    final response = await http.get(Uri.parse(url), headers: {
-      if (cookie != null) 'Cookie': cookie,
-    });
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {if (cookie != null) 'Cookie': cookie},
+    );
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final dir = await getTemporaryDirectory();
       final ext = p.extension(url).isEmpty ? '.pdf' : p.extension(url);
@@ -575,13 +607,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     try {
       await ref.read(homeControllerProvider.notifier).renameFolder(id, result);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Folder renamed')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Folder renamed')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -610,13 +643,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       await ref.read(homeControllerProvider.notifier).deleteFolder(id);
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Folder deleted')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Folder deleted')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 }

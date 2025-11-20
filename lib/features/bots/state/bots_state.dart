@@ -28,14 +28,14 @@ class Bot {
   final String? summary;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'source': source,
-        'tags': tags,
-        'document_id': documentId,
-        'document_name': documentName,
-        'summary': summary,
-      };
+    'id': id,
+    'name': name,
+    'source': source,
+    'tags': tags,
+    'document_id': documentId,
+    'document_name': documentName,
+    'summary': summary,
+  };
 
   factory Bot.fromJson(Map<String, dynamic> json) {
     final document = json['document'] as Map<String, dynamic>?;
@@ -51,9 +51,12 @@ class Bot {
             json['description'] ??
             '',
       ),
-      tags: (json['tags'] as List<dynamic>? ?? document?['tags'] as List<dynamic>? ?? [])
-          .map((e) => e.toString())
-          .toList(),
+      tags:
+          (json['tags'] as List<dynamic>? ??
+                  document?['tags'] as List<dynamic>? ??
+                  [])
+              .map((e) => e.toString())
+              .toList(),
       documentId: _nullableString(
         json['document_id'] ?? document?['id'] ?? document?['document_id'],
       ),
@@ -74,11 +77,7 @@ class BotsState {
   final bool isLoading;
   final bool isImporting;
 
-  BotsState copyWith({
-    List<Bot>? bots,
-    bool? isLoading,
-    bool? isImporting,
-  }) {
+  BotsState copyWith({List<Bot>? bots, bool? isLoading, bool? isImporting}) {
     return BotsState(
       bots: bots ?? this.bots,
       isLoading: isLoading ?? this.isLoading,
@@ -87,10 +86,11 @@ class BotsState {
   }
 }
 
-final botsControllerProvider =
-    StateNotifierProvider<BotsController, BotsState>((ref) {
-  return BotsController();
-});
+final botsControllerProvider = StateNotifierProvider<BotsController, BotsState>(
+  (ref) {
+    return BotsController();
+  },
+);
 
 class BotsController extends StateNotifier<BotsState> {
   BotsController() : super(BotsState(bots: const [], isLoading: true)) {

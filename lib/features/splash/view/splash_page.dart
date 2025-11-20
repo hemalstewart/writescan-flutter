@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/local_storage.dart';
 import '../../auth/auth_controller.dart';
+import '../../../app_theme.dart';
 import '../../auth/auth_state.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
@@ -59,12 +60,8 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: Center(
           child: Column(
@@ -92,9 +89,11 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Loading your workspace…',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(
+                  color: colors.onSurface.withValues(alpha: 0.7),
+                ),
               ),
             ],
           ),

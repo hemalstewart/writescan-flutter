@@ -13,9 +13,10 @@ class BotsApi {
   Future<List<Map<String, dynamic>>> fetchBots() async {
     final uri = Uri.parse('${AppConfig.apiBase}/bots');
     final cookie = await LocalStorage().getSessionCookie();
-    final res = await _client.get(uri, headers: {
-      if (cookie != null) 'Cookie': cookie,
-    });
+    final res = await _client.get(
+      uri,
+      headers: {if (cookie != null) 'Cookie': cookie},
+    );
     if (res.statusCode == 200) {
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final data = body['data'] as List<dynamic>? ?? [];
@@ -51,9 +52,10 @@ class BotsApi {
   Future<void> deleteBot(String botId) async {
     final uri = Uri.parse('${AppConfig.apiBase}/bots/$botId');
     final cookie = await LocalStorage().getSessionCookie();
-    final res = await _client.delete(uri, headers: {
-      if (cookie != null) 'Cookie': cookie,
-    });
+    final res = await _client.delete(
+      uri,
+      headers: {if (cookie != null) 'Cookie': cookie},
+    );
     if (res.statusCode >= 200 && res.statusCode < 300) {
       return;
     }

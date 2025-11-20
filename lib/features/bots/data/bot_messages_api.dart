@@ -11,15 +11,18 @@ class BotMessagesApi {
   Future<List<Map<String, dynamic>>> fetchMessages(String botId) async {
     final cookie = await LocalStorage().getSessionCookie();
     final uri = Uri.parse('${AppConfig.apiBase}/bots/$botId/messages');
-    final res = await _client.get(uri, headers: {
-      if (cookie != null) 'Cookie': cookie,
-    });
+    final res = await _client.get(
+      uri,
+      headers: {if (cookie != null) 'Cookie': cookie},
+    );
     if (res.statusCode == 200) {
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final data = body['data'] as List<dynamic>? ?? [];
       return data.whereType<Map<String, dynamic>>().toList();
     }
-    throw BotMessagesApiException('Failed to load messages (${res.statusCode})');
+    throw BotMessagesApiException(
+      'Failed to load messages (${res.statusCode})',
+    );
   }
 
   Future<Map<String, dynamic>> sendMessage(String botId, String message) async {

@@ -31,20 +31,18 @@ class HomeLocalDataSource {
     if (rawDocs != null) {
       final decoded = jsonDecode(rawDocs) as List<dynamic>;
       docs.addAll(
-        decoded
-            .whereType<Map<String, dynamic>>()
-            .map((e) => DocumentItem.fromJson(
-                  Map<String, dynamic>.from(e),
-                )),
+        decoded.whereType<Map<String, dynamic>>().map(
+          (e) => DocumentItem.fromJson(Map<String, dynamic>.from(e)),
+        ),
       );
     }
 
     if (rawFolders != null) {
       final decoded = jsonDecode(rawFolders) as List<dynamic>;
       folders.addAll(
-        decoded
-            .whereType<Map<String, dynamic>>()
-            .map((e) => Folder.fromJson(Map<String, dynamic>.from(e))),
+        decoded.whereType<Map<String, dynamic>>().map(
+          (e) => Folder.fromJson(Map<String, dynamic>.from(e)),
+        ),
       );
     }
 

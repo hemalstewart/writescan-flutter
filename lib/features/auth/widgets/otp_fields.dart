@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 class OtpFields extends StatefulWidget {
-  const OtpFields({
-    super.key,
-    required this.length,
-    required this.onChanged,
-  });
+  const OtpFields({super.key, required this.length, required this.onChanged});
 
   final int length;
   final ValueChanged<String> onChanged;
@@ -21,8 +17,10 @@ class _OtpFieldsState extends State<OtpFields> {
   @override
   void initState() {
     super.initState();
-    _controllers =
-        List.generate(widget.length, (_) => TextEditingController(text: ''));
+    _controllers = List.generate(
+      widget.length,
+      (_) => TextEditingController(text: ''),
+    );
     _focusNodes = List.generate(widget.length, (_) => FocusNode());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_focusNodes.isNotEmpty) _focusNodes.first.requestFocus();
@@ -57,9 +55,7 @@ class _OtpFieldsState extends State<OtpFields> {
               fontWeight: FontWeight.bold,
               letterSpacing: 2,
             ),
-            decoration: const InputDecoration(
-              counterText: '',
-            ),
+            decoration: const InputDecoration(counterText: ''),
             onChanged: (value) {
               if (value.length == 1 && index < widget.length - 1) {
                 _focusNodes[index + 1].requestFocus();
@@ -67,8 +63,9 @@ class _OtpFieldsState extends State<OtpFields> {
               if (value.isEmpty && index > 0) {
                 _focusNodes[index - 1].requestFocus();
               }
-              final code =
-                  _controllers.map((controller) => controller.text).join();
+              final code = _controllers
+                  .map((controller) => controller.text)
+                  .join();
               widget.onChanged(code);
             },
           ),

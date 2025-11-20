@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../home/state/home_state.dart';
 import '../state/bots_state.dart';
+import '../../../app_theme.dart';
 
 class CreateBotScreen extends ConsumerStatefulWidget {
   const CreateBotScreen({super.key});
@@ -45,12 +46,8 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
         backgroundColor: colors.surface,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: Padding(
@@ -71,8 +68,8 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
                   child: hasDocs
                       ? ListView.separated(
                           itemCount: docs.length,
-                    separatorBuilder: (context, _) =>
-                        const SizedBox(height: 8),
+                          separatorBuilder: (context, _) =>
+                              const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final doc = docs[index];
                             final selected = doc.id == _selectedDocumentId;
@@ -89,7 +86,8 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
                                     : Icons.radio_button_off,
                                 color: selected
                                     ? colors.primary
-                                    : Colors.white70,
+                                    : Theme.of(context).colorScheme.onSurface
+                                          .withValues(alpha: 0.7),
                               ),
                               title: Text(
                                 doc.title,
@@ -100,7 +98,11 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
                               ),
                               subtitle: Text(
                                 '${doc.size} • ${doc.dateLabel}',
-                                style: const TextStyle(color: Colors.white70),
+                                style: TextStyle(
+                                  color: colors.onSurface.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
                               ),
                               onTap: () {
                                 setState(() => _selectedDocumentId = doc.id);
@@ -115,18 +117,28 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.folder_off,
-                                  color: Colors.white54, size: 48),
+                              const Icon(
+                                Icons.folder_off,
+                                color: Colors.white54,
+                                size: 48,
+                              ),
                               const SizedBox(height: 12),
-                              const Text(
+                              Text(
                                 'No documents yet',
-                                style: TextStyle(color: Colors.white70),
+                                style: TextStyle(
+                                  color: colors.onSurface.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 8),
                               ElevatedButton.icon(
-                                onPressed: () => GoRouter.of(context)
-                                    .push('/scan', extra: DocumentKind.normal),
-                                icon: const Icon(Icons.document_scanner_rounded),
+                                onPressed: () => GoRouter.of(
+                                  context,
+                                ).push('/scan', extra: DocumentKind.normal),
+                                icon: const Icon(
+                                  Icons.document_scanner_rounded,
+                                ),
                                 label: const Text('Scan now'),
                               ),
                             ],
@@ -137,9 +149,7 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Bot name',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Bot name'),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -178,9 +188,9 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
     }
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a bot name.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a bot name.')));
       return;
     }
     setState(() => _creating = true);
@@ -189,20 +199,23 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
           .read(botsControllerProvider.notifier)
           .createBotFromDocument(docId, name: name);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bot "$name" created')),
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Bot "$name" created')));
+      GoRouter.of(context).go(
+        '/botChat',
+        extra: {
+          'id': bot.id,
+          'name': bot.name,
+          'source': bot.source,
+          'tags': bot.tags,
+        },
       );
-      GoRouter.of(context).go('/botChat', extra: {
-        'id': bot.id,
-        'name': bot.name,
-        'source': bot.source,
-        'tags': bot.tags,
-      });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() => _creating = false);

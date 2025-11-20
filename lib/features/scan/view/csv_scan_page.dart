@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../home/state/home_state.dart';
+import '../../../app_theme.dart';
 
 class CsvScanPage extends ConsumerStatefulWidget {
   const CsvScanPage({super.key});
@@ -48,12 +49,8 @@ class _CsvScanPageState extends ConsumerState<CsvScanPage> {
         backgroundColor: colors.surface,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: LayoutBuilder(
@@ -68,7 +65,9 @@ class _CsvScanPageState extends ConsumerState<CsvScanPage> {
                     const SizedBox(height: 16),
                     Text(
                       _status,
-                      style: const TextStyle(color: Colors.white70),
+                      style: TextStyle(
+                        color: colors.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -99,16 +98,16 @@ class _CsvScanPageState extends ConsumerState<CsvScanPage> {
                             color: Colors.white.withValues(alpha: 0.08),
                           ),
                         ),
-                        child: SingleChildScrollView(
-                          child: SelectableText(
-                            _csvContent!,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontFamily: 'monospace',
-                            ),
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          _csvContent!,
+                          style: TextStyle(
+                            color: colors.onSurface.withValues(alpha: 0.7),
+                            fontFamily: 'monospace',
                           ),
                         ),
-                      )
+                      ),
+                    )
                     else
                       const SizedBox(height: 140),
                     const SizedBox(height: 16),

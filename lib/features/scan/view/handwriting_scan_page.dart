@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../home/state/home_state.dart';
+import '../../../app_theme.dart';
 
 class HandwritingScanPage extends ConsumerStatefulWidget {
   const HandwritingScanPage({super.key});
@@ -69,12 +70,8 @@ class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: LayoutBuilder(
@@ -95,7 +92,9 @@ class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
                     const SizedBox(height: 16),
                     Text(
                       _status,
-                      style: const TextStyle(color: Colors.white70),
+                      style: TextStyle(
+                        color: colors.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Wrap(

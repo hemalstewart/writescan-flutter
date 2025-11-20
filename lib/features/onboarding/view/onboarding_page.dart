@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/local_storage.dart';
 import '../../auth/auth_controller.dart';
+import '../../../app_theme.dart';
 import '../../auth/auth_state.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
@@ -57,12 +58,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: Padding(
@@ -80,8 +77,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   child: PageView.builder(
                     controller: _controller,
                     itemCount: _slides.length,
-                    onPageChanged: (value) =>
-                        setState(() => _index = value.clamp(0, _slides.length - 1)),
+                    onPageChanged: (value) => setState(
+                      () => _index = value.clamp(0, _slides.length - 1),
+                    ),
                     itemBuilder: (context, index) {
                       final slide = _slides[index];
                       return _SlideCard(slide: slide, color: colors.primary);
@@ -164,7 +162,12 @@ class _SlideCard extends StatelessWidget {
         Text(
           slide.description,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white70, fontSize: 16, height: 1.4),
+          style: TextStyle(
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            fontSize: 16,
+            height: 1.4,
+          ),
         ),
       ],
     );

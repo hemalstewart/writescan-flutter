@@ -14,21 +14,16 @@ class OtpRequestResult {
 }
 
 class OtpVerifyResult {
-  OtpVerifyResult({
-    required this.mobile,
-    required this.subscriberId,
-  });
+  OtpVerifyResult({required this.mobile, required this.subscriberId});
 
   final String mobile;
   final String? subscriberId;
 }
 
 class AuthRepository {
-  AuthRepository({
-    required AuthApi api,
-    required LocalStorage storage,
-  })  : _api = api,
-        _storage = storage;
+  AuthRepository({required AuthApi api, required LocalStorage storage})
+    : _api = api,
+      _storage = storage;
 
   final AuthApi _api;
   final LocalStorage _storage;
@@ -82,7 +77,8 @@ class AuthRepository {
     final message =
         apiResult.message ?? apiResult.details?['statusDetail'] as String?;
     throw AuthDomainException(
-        message ?? 'Failed to send OTP (${apiResult.statusCode})');
+      message ?? 'Failed to send OTP (${apiResult.statusCode})',
+    );
   }
 
   Future<OtpVerifyResult> verifyOtp({
@@ -123,7 +119,8 @@ class AuthRepository {
       return OtpVerifyResult(mobile: mobile, subscriberId: subscriberId);
     }
 
-    final errorMessage = apiResult.details?['statusDetail'] as String? ??
+    final errorMessage =
+        apiResult.details?['statusDetail'] as String? ??
         apiResult.message ??
         'Invalid code, try again (${apiResult.statusCode})';
     throw AuthDomainException(errorMessage);

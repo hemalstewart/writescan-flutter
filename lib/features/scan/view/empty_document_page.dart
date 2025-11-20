@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../home/state/home_state.dart';
+import '../../../app_theme.dart';
 
 class EmptyDocumentPage extends ConsumerStatefulWidget {
   const EmptyDocumentPage({super.key});
@@ -41,12 +42,8 @@ class _EmptyDocumentPageState extends ConsumerState<EmptyDocumentPage> {
         label: const Text('Add page'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: Column(
@@ -59,7 +56,9 @@ class _EmptyDocumentPageState extends ConsumerState<EmptyDocumentPage> {
                     return _PageEditor(
                       controller: _pages[index],
                       index: index,
-                      onRemove: _pages.length == 1 ? null : () => _removePage(index),
+                      onRemove: _pages.length == 1
+                          ? null
+                          : () => _removePage(index),
                     );
                   },
                 ),
@@ -134,23 +133,30 @@ class _EmptyDocumentPageState extends ConsumerState<EmptyDocumentPage> {
       }
       final bytes = await pdf.save();
       final dir = await getTemporaryDirectory();
-      final file = File(p.join(dir.path, 'EmptyDoc-${DateTime.now().millisecondsSinceEpoch}.pdf'));
+      final file = File(
+        p.join(
+          dir.path,
+          'EmptyDoc-${DateTime.now().millisecondsSinceEpoch}.pdf',
+        ),
+      );
       await file.writeAsBytes(bytes, flush: true);
-      await ref.read(homeControllerProvider.notifier).uploadDocument(
+      await ref
+          .read(homeControllerProvider.notifier)
+          .uploadDocument(
             'Empty Document ${DateTime.now().millisecondsSinceEpoch}',
             DocumentKind.normal,
             path: file.path,
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Empty document saved.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Empty document saved.')));
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -187,14 +193,19 @@ class _PageEditor extends StatelessWidget {
             children: [
               Text(
                 'Page ${index + 1}',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               if (onRemove != null)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.white70),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                   onPressed: onRemove,
                 ),
             ],
@@ -203,9 +214,7 @@ class _PageEditor extends StatelessWidget {
           TextField(
             controller: controller,
             maxLines: null,
-            decoration: const InputDecoration(
-              hintText: 'Start typing...',
-            ),
+            decoration: const InputDecoration(hintText: 'Start typing...'),
           ),
         ],
       ),

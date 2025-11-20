@@ -7,13 +7,14 @@ import '../../data/local_storage.dart';
 import 'auth_repository.dart';
 import 'auth_state.dart';
 
-final authControllerProvider =
-    StateNotifierProvider<AuthController, AuthState>((ref) {
-  final api = AuthApi();
-  final storage = LocalStorage();
-  final repo = AuthRepository(api: api, storage: storage);
-  return AuthController(repo);
-});
+final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
+  (ref) {
+    final api = AuthApi();
+    final storage = LocalStorage();
+    final repo = AuthRepository(api: api, storage: storage);
+    return AuthController(repo);
+  },
+);
 
 class AuthController extends StateNotifier<AuthState> {
   AuthController(this._repository) : super(const AuthState()) {
@@ -75,8 +76,9 @@ class AuthController extends StateNotifier<AuthState> {
       print('[auth] verifyOtp success');
       state = state.copyWith(stage: AuthStage.loggedIn, message: null);
     } on TimeoutException {
-      state =
-          state.copyWith(message: 'Verification is taking too long. Try again.');
+      state = state.copyWith(
+        message: 'Verification is taking too long. Try again.',
+      );
       // ignore: avoid_print
       print('[auth] verifyOtp timeout');
     } catch (e) {

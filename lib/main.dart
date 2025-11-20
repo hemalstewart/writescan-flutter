@@ -19,6 +19,8 @@ class WriteScanApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       title: 'WriteScan',
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       routerConfig: router,
     );
   }

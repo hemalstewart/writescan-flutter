@@ -28,7 +28,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(authControllerProvider);
     final controller = ref.read(authControllerProvider.notifier);
-    final colors = AppTheme.colorScheme;
+    final colors = Theme.of(context).colorScheme;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (state.message != null && state.message!.isNotEmpty) {
@@ -48,19 +48,19 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+            decoration: BoxDecoration(
+              gradient: AppTheme.backgroundGradient(
+                Theme.of(context).colorScheme,
               ),
             ),
           ),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -69,7 +69,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                       style: GoogleFonts.manrope(
                         fontSize: 32,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: colors.onSurface,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -77,7 +77,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     Text(
                       'Sign in with your mobile number',
                       style: GoogleFonts.manrope(
-                        color: Colors.white70,
+                        color: colors.onSurface.withValues(alpha: 0.7),
                         fontSize: 14,
                       ),
                     ),
@@ -109,9 +109,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
           if (state.isLoading)
             Container(
               color: Colors.black.withValues(alpha: 0.4),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: const Center(child: CircularProgressIndicator()),
             ),
         ],
       ),
@@ -144,15 +142,14 @@ class _PhoneCard extends StatelessWidget {
             color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 14),
-          )
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: colors.primary.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(12),
@@ -178,7 +175,7 @@ class _PhoneCard extends StatelessWidget {
           Text(
             'We\'ll send a 6-digit code to confirm it\'s you.',
             style: GoogleFonts.manrope(
-              color: Colors.white70,
+              color: colors.onSurface.withValues(alpha: 0.7),
               fontSize: 13,
             ),
           ),
@@ -243,15 +240,14 @@ class _OtpCard extends StatelessWidget {
             color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 14),
-          )
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: colors.secondary.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(12),
@@ -278,12 +274,11 @@ class _OtpCard extends StatelessWidget {
             children: [
               Text(
                 '+94 ${mobile.replaceFirst('07', '7')}',
-                style: GoogleFonts.manrope(color: Colors.white70),
+                style: GoogleFonts.manrope(
+                  color: colors.onSurface.withValues(alpha: 0.7),
+                ),
               ),
-              TextButton(
-                onPressed: onEditNumber,
-                child: const Text('edit'),
-              ),
+              TextButton(onPressed: onEditNumber, child: const Text('edit')),
             ],
           ),
           const SizedBox(height: 12),

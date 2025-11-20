@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:writescan/utils/open_document.dart';
 
 import '../state/home_state.dart';
+import '../../../app_theme.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -21,12 +22,8 @@ class HomeScreen extends ConsumerWidget {
         label: const Text('Folder'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: LayoutBuilder(
@@ -393,7 +390,10 @@ class _Header extends StatelessWidget {
         ),
         IconButton(
           onPressed: () {},
-          icon: const Icon(Icons.notifications_outlined, color: Colors.white70),
+          icon: Icon(
+            Icons.notifications_outlined,
+            color: colors.onSurface.withValues(alpha: 0.7),
+          ),
         ),
       ],
     );
@@ -475,9 +475,9 @@ class _ActionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
+          color: AppTheme.panelColor(colors),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(color: AppTheme.panelBorder(colors)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -519,9 +519,9 @@ class _DocCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: AppTheme.panelColor(colors),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: AppTheme.panelBorder(colors)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -533,7 +533,10 @@ class _DocCard extends StatelessWidget {
               const Spacer(),
               Text(
                 doc.size,
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                  color: colors.onSurface.withValues(alpha: 0.7),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -577,9 +580,9 @@ class _FolderCard extends StatelessWidget {
       width: 140,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: AppTheme.panelColor(colors),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: AppTheme.panelBorder(colors)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -616,9 +619,9 @@ Widget _emptyBlock(ColorScheme colors, String title, String subtitle) {
     width: double.infinity,
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.04),
+      color: AppTheme.panelColor(colors),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      border: Border.all(color: AppTheme.panelBorder(colors)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,7 +634,10 @@ Widget _emptyBlock(ColorScheme colors, String title, String subtitle) {
           ),
         ),
         const SizedBox(height: 4),
-        Text(subtitle, style: const TextStyle(color: Colors.white70)),
+        Text(
+          subtitle,
+          style: TextStyle(color: colors.onSurface.withValues(alpha: 0.7)),
+        ),
       ],
     ),
   );

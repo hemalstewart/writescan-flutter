@@ -9,14 +9,23 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 import '../../home/state/home_state.dart';
+import '../../../app_theme.dart';
 
-class ScanPlaceholderPage extends ConsumerWidget {
+class ScanPlaceholderPage extends ConsumerStatefulWidget {
   const ScanPlaceholderPage({super.key, required this.kind});
 
   final DocumentKind kind;
 
+  @override
+  ConsumerState<ScanPlaceholderPage> createState() =>
+      _ScanPlaceholderPageState();
+}
+
+class _ScanPlaceholderPageState extends ConsumerState<ScanPlaceholderPage> {
+  bool _isProcessing = false;
+
   String get _title {
-    switch (kind) {
+    switch (widget.kind) {
       case DocumentKind.normal:
         return 'Document Scan';
       case DocumentKind.ocr:
@@ -29,7 +38,7 @@ class ScanPlaceholderPage extends ConsumerWidget {
   }
 
   String get _description {
-    switch (kind) {
+    switch (widget.kind) {
       case DocumentKind.normal:
         return 'Capture pages and save them as a PDF.';
       case DocumentKind.ocr:
@@ -42,7 +51,7 @@ class ScanPlaceholderPage extends ConsumerWidget {
   }
 
   IconData get _icon {
-    switch (kind) {
+    switch (widget.kind) {
       case DocumentKind.normal:
         return Icons.document_scanner_rounded;
       case DocumentKind.ocr:
@@ -55,80 +64,139 @@ class ScanPlaceholderPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: Text(_title), backgroundColor: colors.surface),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: colors.primary.withValues(alpha: 0.2),
-                  child: Icon(_icon, color: colors.primary, size: 32),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _title,
-                  style: TextStyle(
-                    color: colors.onSurface,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
+        child: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: colors.primary.withValues(
+                            alpha: 0.2,
+                          ),
+                          child: Icon(_icon, color: colors.primary, size: 32),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _title,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _description,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: colors.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: _isProcessing
+                              ? null
+                              : () async {
+                                  await _handleScan(ref);
+                                },
+                          icon: const Icon(Icons.camera_alt_rounded),
+                          label: const Text('Scan with camera'),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: _isProcessing
+                              ? null
+                              : () async {
+                                  await _handlePick(ref);
+                                },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Choose file or image'),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _isProcessing
+                              ? null
+                              : () {
+                                  Navigator.of(context).pop();
+                                },
+                          icon: const Icon(Icons.close),
+                          label: const Text('Back'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  _description,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await _scanWithCamera(kind);
-                    if (result != null && context.mounted) {
-                      await _uploadResult(context, ref, kind, result);
-                    }
-                  },
-                  icon: const Icon(Icons.camera_alt_rounded),
-                  label: const Text('Scan with camera'),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await _pickFileOrImage(kind);
-                    if (result != null && context.mounted) {
-                      await _uploadResult(context, ref, kind, result);
-                    }
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Choose file or image'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.close),
-                  label: const Text('Back'),
-                ),
-              ],
+              ),
             ),
-          ),
+            if (_isProcessing)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Processing...',
+                          style: TextStyle(
+                            color: colors.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _handleScan(WidgetRef ref) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    try {
+      final result = await _scanWithCamera(widget.kind);
+      if (result != null && mounted) {
+        await _uploadResult(context, ref, widget.kind, result);
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _handlePick(WidgetRef ref) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    try {
+      final result = await _pickFileOrImage(widget.kind);
+      if (result != null && mounted) {
+        await _uploadResult(context, ref, widget.kind, result);
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
   }
 
   Future<void> _uploadResult(
@@ -139,30 +207,28 @@ class ScanPlaceholderPage extends ConsumerWidget {
   ) async {
     final controller = ref.read(homeControllerProvider.notifier);
     try {
-      await controller.uploadDocument(
-        result.title,
-        kind,
-        path: result.path,
-      );
+      await controller.uploadDocument(result.title, kind, path: result.path);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Uploaded "${result.title}"')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Uploaded "${result.title}"')));
       Navigator.of(context).pop();
     } catch (e) {
-      final message =
-          e is HomeException ? e.message : 'Failed to upload document';
+      final message = e is HomeException
+          ? e.message
+          : 'Failed to upload document';
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }
 }
 
-const MethodChannel _visionScannerChannel =
-    MethodChannel('writescan/vision_scanner');
+const MethodChannel _visionScannerChannel = MethodChannel(
+  'writescan/vision_scanner',
+);
 
 class _PickResult {
   _PickResult(this.title, this.path);
@@ -237,7 +303,9 @@ String _friendlyName(String path) {
 Future<_PickResult?> _scanWithVisionKit() async {
   if (!Platform.isIOS) return null;
   try {
-    final path = await _visionScannerChannel.invokeMethod<String>('scanDocument');
+    final path = await _visionScannerChannel.invokeMethod<String>(
+      'scanDocument',
+    );
     if (path == null || path.isEmpty) return null;
     return _PickResult(_friendlyName(path), path);
   } on PlatformException catch (e) {

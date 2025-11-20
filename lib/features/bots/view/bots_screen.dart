@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../state/bots_state.dart';
 import '../../home/state/home_state.dart';
+import '../../../app_theme.dart';
 import 'package:path/path.dart' as p;
 
 class BotsScreen extends ConsumerWidget {
@@ -18,12 +19,8 @@ class BotsScreen extends ConsumerWidget {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: Padding(
@@ -236,9 +233,9 @@ class _BotCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: AppTheme.panelColor(colors),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: AppTheme.panelBorder(colors)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -253,7 +250,10 @@ class _BotCard extends StatelessWidget {
               ),
               const Spacer(),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.white70),
+                icon: Icon(
+                  Icons.more_vert,
+                  color: colors.onSurface.withValues(alpha: 0.7),
+                ),
                 onSelected: (value) {
                   if (value == 'delete') onDelete();
                 },
@@ -293,8 +293,10 @@ class _BotCard extends StatelessWidget {
                         horizontal: -4,
                         vertical: -2,
                       ),
-                      backgroundColor: Colors.white.withValues(alpha: 0.06),
-                      labelStyle: const TextStyle(color: Colors.white70),
+                      backgroundColor: colors.onSurface.withValues(alpha: 0.04),
+                      labelStyle: TextStyle(
+                        color: colors.onSurface.withValues(alpha: 0.7),
+                      ),
                       side: BorderSide.none,
                       padding: EdgeInsets.zero,
                       label: Text(tag, overflow: TextOverflow.ellipsis),

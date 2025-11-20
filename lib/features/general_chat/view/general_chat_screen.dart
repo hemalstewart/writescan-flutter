@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/general_chat_state.dart';
+import '../../../app_theme.dart';
 
 class GeneralChatScreen extends ConsumerStatefulWidget {
   const GeneralChatScreen({super.key});
@@ -43,19 +44,17 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D0F25), Color(0xFF1B1740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(Theme.of(context).colorScheme),
         ),
         child: SafeArea(
           child: Column(
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -68,17 +67,19 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
                       ),
                     ),
                     _clearing
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 32,
                             height: 32,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white70,
+                              color: colors.onSurface.withValues(alpha: 0.7),
                             ),
                           )
                         : PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert,
-                                color: Colors.white70),
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: colors.onSurface.withValues(alpha: 0.7),
+                            ),
                             onSelected: (value) {
                               if (value == 'clear') {
                                 _confirmClear(controller);
@@ -111,21 +112,24 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
                             child: Container(
                               margin: const EdgeInsets.symmetric(vertical: 6),
                               padding: const EdgeInsets.all(12),
-                              constraints:
-                                  const BoxConstraints(maxWidth: 280),
+                              constraints: const BoxConstraints(maxWidth: 280),
                               decoration: BoxDecoration(
                                 color: isUser
                                     ? colors.primary.withValues(alpha: 0.2)
-                                    : Colors.white.withValues(alpha: 0.05),
+                                    : colors.onSurface.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.06),
+                                  color: colors.onSurface.withValues(
+                                    alpha: 0.06,
+                                  ),
                                 ),
                               ),
                               child: Text(
                                 m.text,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  color: colors.onSurface.withValues(
+                                    alpha: 0.9,
+                                  ),
                                 ),
                               ),
                             ),
@@ -150,9 +154,11 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Assistant is replying...',
-                          style: TextStyle(color: Colors.white70),
+                          style: TextStyle(
+                            color: colors.onSurface.withValues(alpha: 0.7),
+                          ),
                         ),
                       ],
                     ),
@@ -189,15 +195,15 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
     try {
       await controller.clear();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Chat cleared')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Chat cleared')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) {
@@ -249,9 +255,7 @@ class _ChatInputState extends State<_ChatInput> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.2),
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-        ),
+        border: Border(top: BorderSide(color: AppTheme.panelBorder(colors))),
       ),
       child: Row(
         children: [
@@ -261,18 +265,17 @@ class _ChatInputState extends State<_ChatInput> {
               decoration: InputDecoration(
                 hintText: 'Ask anything...',
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.06),
+                fillColor: colors.onSurface.withValues(alpha: 0.06),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(color: AppTheme.panelBorder(colors)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(color: colors.primary),
                 ),
               ),
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: colors.onSurface),
               onSubmitted: (_) => _handleSend(colors),
             ),
           ),
@@ -289,7 +292,7 @@ class _ChatInputState extends State<_ChatInput> {
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(Icons.send_rounded, color: Colors.white),
+                  : Icon(Icons.send_rounded, color: colors.onSurface),
               onPressed: _sending ? null : () => _handleSend(colors),
             ),
           ),
