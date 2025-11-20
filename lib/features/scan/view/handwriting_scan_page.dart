@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -14,11 +15,13 @@ class HandwritingScanPage extends ConsumerStatefulWidget {
   const HandwritingScanPage({super.key});
 
   @override
-  ConsumerState<HandwritingScanPage> createState() => _HandwritingScanPageState();
+  ConsumerState<HandwritingScanPage> createState() =>
+      _HandwritingScanPageState();
 }
 
 class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
   final _textController = TextEditingController();
+  final _textFocusNode = FocusNode();
   String _status = 'Capture a handwritten note to convert it into text.';
   String? _imagePath;
   bool _processing = false;
@@ -34,6 +37,7 @@ class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
   @override
   void dispose() {
     _textController.dispose();
+    _textFocusNode.dispose();
     _textRecognizer.close();
     super.dispose();
   }
@@ -41,10 +45,28 @@ class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final media = MediaQuery.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Handwriting Scan'),
         backgroundColor: colors.surface,
+        actions: [
+          IconButton(
+            tooltip: _textFocusNode.hasFocus ? 'Hide keyboard' : 'Edit text',
+            icon: Icon(
+              _textFocusNode.hasFocus
+                  ? Icons.keyboard_hide_rounded
+                  : Icons.edit_note_rounded,
+            ),
+            onPressed: () {
+              if (_textFocusNode.hasFocus) {
+                _textFocusNode.unfocus();
+              } else {
+                FocusScope.of(context).requestFocus(_textFocusNode);
+              }
+            },
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -55,66 +77,96 @@ class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                _PreviewCard(imagePath: _imagePath),
-                const SizedBox(height: 16),
-                Text(
-                  _status,
-                  style: const TextStyle(color: Colors.white70),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final baseHeight = media.size.height - media.padding.vertical;
+              final editorHeight = math.max(220.0, baseHeight - 360);
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  20,
+                  20,
+                  20 + media.viewInsets.bottom,
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: _processing ? null : _captureImage,
-                      icon: const Icon(Icons.camera_alt_rounded),
-                      label: const Text('Capture'),
+                    _PreviewCard(imagePath: _imagePath),
+                    const SizedBox(height: 16),
+                    Text(
+                      _status,
+                      style: const TextStyle(color: Colors.white70),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: _processing ? null : _pickImage,
-                      icon: const Icon(Icons.photo_library_rounded),
-                      label: const Text('Gallery'),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _processing ? null : _captureImage,
+                          icon: const Icon(Icons.camera_alt_rounded),
+                          label: const Text('Capture'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _processing ? null : _pickImage,
+                          icon: const Icon(Icons.photo_library_rounded),
+                          label: const Text('Gallery'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: editorHeight,
+                      width: double.infinity,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        child: Scrollbar(
+                          child: TextField(
+                            controller: _textController,
+                            focusNode: _textFocusNode,
+                            maxLines: null,
+                            expands: true,
+                            textAlignVertical: TextAlignVertical.top,
+                            decoration: const InputDecoration(
+                              hintText: 'Recognised text will appear here...',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.all(16),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed:
+                            (_textController.text.trim().isEmpty || _saving)
+                            ? null
+                            : _saveNote,
+                        icon: _saving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.save_rounded),
+                        label: const Text('Save to documents'),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    maxLines: null,
-                    expands: true,
-                    decoration: const InputDecoration(
-                      hintText: 'Recognised text will appear here...',
-                      border: OutlineInputBorder(),
-                      filled: true,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed:
-                        (_textController.text.trim().isEmpty || _saving) ? null : _saveNote,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.save_rounded),
-                    label: const Text('Save to documents'),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -165,32 +217,32 @@ class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
   Future<void> _saveNote() async {
     final text = _textController.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nothing to save yet.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nothing to save yet.')));
       return;
     }
     setState(() => _saving = true);
     try {
       final dir = await getTemporaryDirectory();
-      final file = File(p.join(dir.path, '${DateTime.now().millisecondsSinceEpoch}.txt'));
+      final file = File(
+        p.join(dir.path, '${DateTime.now().millisecondsSinceEpoch}.txt'),
+      );
       await file.writeAsString(text);
       final name = 'Handwriting ${DateTime.now().millisecondsSinceEpoch}';
-      await ref.read(homeControllerProvider.notifier).uploadDocument(
-            name,
-            DocumentKind.handwriting,
-            path: file.path,
-          );
+      await ref
+          .read(homeControllerProvider.notifier)
+          .uploadDocument(name, DocumentKind.handwriting, path: file.path);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved "$name" to Documents')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Saved "$name" to Documents')));
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

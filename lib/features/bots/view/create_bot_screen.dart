@@ -192,7 +192,7 @@ class _CreateBotScreenState extends ConsumerState<CreateBotScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Bot "$name" created')),
       );
-      GoRouter.of(context).push('/botChat', extra: {
+      GoRouter.of(context).go('/botChat', extra: {
         'id': bot.id,
         'name': bot.name,
         'source': bot.source,

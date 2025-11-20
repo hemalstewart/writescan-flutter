@@ -133,6 +133,31 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
                         },
                       ),
               ),
+              if (state.isSending)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Assistant is replying...',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               _ChatInput(onSend: controller.send),
             ],
           ),
@@ -201,11 +226,20 @@ class _ChatInputState extends State<_ChatInput> {
   }
 
   Future<void> _handleSend(ColorScheme colors) async {
-    if (_controller.text.trim().isEmpty || _sending) return;
+    final text = _controller.text.trim();
+    if (text.isEmpty || _sending) return;
     setState(() => _sending = true);
-    await widget.onSend(_controller.text.trim());
     _controller.clear();
-    setState(() => _sending = false);
+    try {
+      await widget.onSend(text);
+    } catch (_) {
+      _controller.text = text;
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   @override

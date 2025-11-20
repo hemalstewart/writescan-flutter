@@ -56,89 +56,92 @@ class _CsvScanPageState extends ConsumerState<CsvScanPage> {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _PreviewCard(imagePath: _imagePath),
-                const SizedBox(height: 16),
-                Text(
-                  _status,
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: _processing ? null : _captureFromCamera,
-                      icon: const Icon(Icons.camera_alt_rounded),
-                      label: const Text('Capture'),
+                    _PreviewCard(imagePath: _imagePath),
+                    const SizedBox(height: 16),
+                    Text(
+                      _status,
+                      style: const TextStyle(color: Colors.white70),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: _processing ? null : _pickFromGallery,
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text('Gallery'),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _processing ? null : _captureFromCamera,
+                          icon: const Icon(Icons.camera_alt_rounded),
+                          label: const Text('Capture'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _processing ? null : _pickFromGallery,
+                          icon: const Icon(Icons.photo_library),
+                          label: const Text('Gallery'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (_csvContent != null)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: SingleChildScrollView(
+                          child: SelectableText(
+                            _csvContent!,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(height: 140),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'File name',
+                        hintText: 'e.g. Quarterly Report',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: (_csvContent == null || _saving)
+                            ? null
+                            : _saveCsvDocument,
+                        icon: _saving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.save_alt_rounded),
+                        label: const Text('Save to documents'),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                if (_csvContent != null)
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      child: SingleChildScrollView(
-                        child: SelectableText(
-                          _csvContent!,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  const Spacer(),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'File name',
-                    hintText: 'e.g. Quarterly Report',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: (_csvContent == null || _saving)
-                        ? null
-                        : _saveCsvDocument,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.save_alt_rounded),
-                    label: const Text('Save to documents'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -174,7 +177,8 @@ class _CsvScanPageState extends ConsumerState<CsvScanPage> {
       final text = result.text.trim();
       if (text.isEmpty) {
         setState(() {
-          _status = 'No text detected. Try capturing again with better lighting.';
+          _status =
+              'No text detected. Try capturing again with better lighting.';
         });
       } else {
         final csv = _convertTextToCsv(text);
@@ -209,22 +213,23 @@ class _CsvScanPageState extends ConsumerState<CsvScanPage> {
     setState(() => _saving = true);
     try {
       final dir = await getTemporaryDirectory();
-      final file = File(p.join(dir.path, '${DateTime.now().millisecondsSinceEpoch}.csv'));
+      final file = File(
+        p.join(dir.path, '${DateTime.now().millisecondsSinceEpoch}.csv'),
+      );
       await file.writeAsString(csv);
-      await ref.read(homeControllerProvider.notifier).uploadDocument(
-            name,
-            DocumentKind.csv,
-            path: file.path,
-          );
+      await ref
+          .read(homeControllerProvider.notifier)
+          .uploadDocument(name, DocumentKind.csv, path: file.path);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved "$name" to Documents')),);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Saved "$name" to Documents')));
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -278,7 +283,11 @@ class _PreviewCard extends StatelessWidget {
           ? Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
-                Icon(Icons.table_chart_rounded, color: Colors.white54, size: 48),
+                Icon(
+                  Icons.table_chart_rounded,
+                  color: Colors.white54,
+                  size: 48,
+                ),
                 SizedBox(height: 8),
                 Text('No preview yet', style: TextStyle(color: Colors.white54)),
               ],

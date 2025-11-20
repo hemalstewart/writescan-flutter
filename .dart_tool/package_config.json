@@ -309,7 +309,7 @@
     },
     {
       "name": "mime",
-      "rootUri": "file:///Users/lakminiinternational/.pub-cache/hosted/pub.dev/mime-2.0.0",
+      "rootUri": "file:///Users/lakminiinternational/.pub-cache/hosted/pub.dev/mime-1.0.6",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -420,6 +420,18 @@
       "rootUri": "file:///Users/lakminiinternational/.pub-cache/hosted/pub.dev/riverpod-2.6.1",
       "packageUri": "lib/",
       "languageVersion": "2.17"
+    },
+    {
+      "name": "share_plus",
+      "rootUri": "file:///Users/lakminiinternational/.pub-cache/hosted/pub.dev/share_plus-7.2.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
+      "name": "share_plus_platform_interface",
+      "rootUri": "file:///Users/lakminiinternational/.pub-cache/hosted/pub.dev/share_plus_platform_interface-3.4.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
     },
     {
       "name": "shared_preferences",

@@ -41,17 +41,24 @@ class ChatMessage {
 }
 
 class GeneralChatState {
-  const GeneralChatState({required this.messages, this.isLoading = true});
+  const GeneralChatState({
+    required this.messages,
+    this.isLoading = true,
+    this.isSending = false,
+  });
   final List<ChatMessage> messages;
   final bool isLoading;
+  final bool isSending;
 
   GeneralChatState copyWith({
     List<ChatMessage>? messages,
     bool? isLoading,
+    bool? isSending,
   }) {
     return GeneralChatState(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
+      isSending: isSending ?? this.isSending,
     );
   }
 }
@@ -125,7 +132,10 @@ class GeneralChatController extends StateNotifier<GeneralChatState> {
       isUser: true,
       timestamp: DateTime.now(),
     );
-    state = state.copyWith(messages: [...state.messages, tempMsg]);
+    state = state.copyWith(
+      messages: [...state.messages, tempMsg],
+      isSending: true,
+    );
     await _save(state.messages);
     // ignore: avoid_print
     print('[generalChat] send -> "${text.trim()}"');
@@ -139,7 +149,7 @@ class GeneralChatController extends StateNotifier<GeneralChatState> {
       var msgs = List<ChatMessage>.from(state.messages);
       msgs.removeWhere((m) => m.id == tempId);
       if (created != null) msgs.add(created);
-      state = state.copyWith(messages: msgs);
+      state = state.copyWith(messages: msgs, isSending: false);
       await _save(msgs);
       // pull latest from backend to catch assistant replies
       await _load();
@@ -149,6 +159,7 @@ class GeneralChatController extends StateNotifier<GeneralChatState> {
       // keep optimistic message
       // ignore: avoid_print
       print('[generalChat] send error: $e');
+      state = state.copyWith(isSending: false);
     }
   }
 

@@ -127,11 +127,20 @@ class _BotChatInputState extends State<_BotChatInput> {
   }
 
   Future<void> _handleSend(ColorScheme colors) async {
-    if (_controller.text.trim().isEmpty || _sending) return;
+    final text = _controller.text.trim();
+    if (text.isEmpty || _sending) return;
     setState(() => _sending = true);
-    await widget.onSend(_controller.text.trim());
     _controller.clear();
-    setState(() => _sending = false);
+    try {
+      await widget.onSend(text);
+    } catch (_) {
+      _controller.text = text;
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   @override

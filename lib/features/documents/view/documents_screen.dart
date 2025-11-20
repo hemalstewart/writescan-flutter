@@ -1,7 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../../data/local_storage.dart';
 import '../../home/state/home_state.dart';
 import '../../../utils/open_document.dart';
 
@@ -19,6 +26,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   final _searchController = TextEditingController();
   String _query = '';
   bool _showSearch = false;
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+  bool _isSharing = false;
+  List<DocumentItem> _visibleDocuments = const [];
 
   @override
   void initState() {
@@ -65,13 +76,52 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       final aDate = a.updatedAt ?? a.createdAt ?? DateTime.now();
       return bDate.compareTo(aDate);
     });
+    _visibleDocuments = docs;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.folderId == null
-            ? 'Documents'
-            : widget.folderName ?? 'Folder'),
-        actions: [
+        title: Text(
+          widget.folderId == null
+              ? (_selectionMode ? '${_selectedIds.length} selected' : 'Documents')
+              : (_selectionMode
+                  ? '${_selectedIds.length} selected'
+                  : widget.folderName ?? 'Folder'),
+        ),
+        leading: _selectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  setState(() {
+                    _selectionMode = false;
+                    _selectedIds.clear();
+                  });
+                },
+              )
+            : null,
+        actions: _selectionMode
+            ? [
+                IconButton(
+                  tooltip: 'Share selected',
+                  icon: _isSharing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.ios_share_rounded),
+                  onPressed: _selectedIds.isEmpty || _isSharing
+                      ? null
+                      : () => _shareSelected(),
+                ),
+                IconButton(
+                  tooltip: 'Delete selected',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: _selectedIds.isEmpty
+                      ? null
+                      : () => _deleteSelected(controller),
+                ),
+              ]
+            : [
           IconButton(
             icon: Icon(_showSearch ? Icons.close : Icons.search),
             onPressed: () {
@@ -164,34 +214,55 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    colors.primary.withValues(alpha: 0.16),
-                                child: Icon(
-                                  _iconForKind(doc.kind),
-                                  color: colors.primary,
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor:
+                                      colors.primary.withValues(alpha: 0.16),
+                                  child: Icon(
+                                    _iconForKind(doc.kind),
+                                    color: colors.primary,
+                                  ),
                                 ),
-                              ),
-                              title: Text(
-                                doc.title,
-                                style: TextStyle(
-                                  color: colors.onSurface,
-                                  fontWeight: FontWeight.w700,
+                                title: Text(
+                                  doc.title,
+                                  style: TextStyle(
+                                    color: colors.onSurface,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
+                                subtitle: Text(
+                                  subtitle,
+                                  style:
+                                      const TextStyle(color: Colors.white70),
+                                ),
+                                trailing: _selectionMode
+                                    ? Checkbox(
+                                        value: _selectedIds.contains(doc.id),
+                                        onChanged: (_) =>
+                                            _toggleSelection(doc.id),
+                                      )
+                                    : IconButton(
+                                        icon: const Icon(Icons.more_vert,
+                                            color: Colors.white70),
+                                        onPressed: () =>
+                                            _showActions(context, doc),
+                                      ),
+                                onTap: () {
+                                  if (_selectionMode) {
+                                    _toggleSelection(doc.id);
+                                  } else {
+                                    openDocument(context, doc);
+                                  }
+                                },
+                                onLongPress: () {
+                                  if (!_selectionMode) {
+                                    setState(() {
+                                      _selectionMode = true;
+                                      _selectedIds.add(doc.id);
+                                    });
+                                  }
+                                },
                               ),
-                              subtitle: Text(
-                                subtitle,
-                                style:
-                                    const TextStyle(color: Colors.white70),
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.more_vert,
-                                    color: Colors.white70),
-                                onPressed: () => _showActions(context, doc),
-                              ),
-                              onTap: () => openDocument(context, doc),
-                            ),
                           );
                         },
                         separatorBuilder: (context, _) =>
@@ -386,6 +457,93 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         SnackBar(content: Text(e.toString())),
       );
     }
+  }
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) _selectionMode = false;
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _deleteSelected(HomeController controller) async {
+    final ids = List<String>.from(_selectedIds);
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+    for (final id in ids) {
+      await controller.deleteDocument(id);
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Deleted ${ids.length} document(s)')),
+      );
+    }
+  }
+
+  Future<void> _shareSelected() async {
+    setState(() => _isSharing = true);
+    try {
+      final docs = _visibleDocuments
+          .where((doc) => _selectedIds.contains(doc.id))
+          .toList();
+      if (docs.isEmpty) return;
+      final files = <XFile>[];
+      for (final doc in docs) {
+        final file = await _resolveFile(doc);
+        files.add(XFile(file.path, mimeType: doc.mimeType, name: p.basename(file.path)));
+      }
+      if (files.isNotEmpty) {
+        final renderBox = mounted ? context.findRenderObject() as RenderBox? : null;
+        await Share.shareXFiles(
+          files,
+          text: docs.length == 1 ? docs.first.title : '${docs.length} documents',
+          sharePositionOrigin: renderBox == null
+              ? null
+              : Rect.fromLTWH(
+                  renderBox.localToGlobal(Offset.zero).dx,
+                  renderBox.localToGlobal(Offset.zero).dy,
+                  renderBox.size.width,
+                  renderBox.size.height,
+                ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not share: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
+
+  Future<File> _resolveFile(DocumentItem doc) async {
+    if (doc.path != null && File(doc.path!).existsSync()) {
+      return File(doc.path!);
+    }
+    final url = doc.fileUrl;
+    if (url == null) {
+      throw Exception('Document file not available.');
+    }
+    final cookie = await LocalStorage().getSessionCookie();
+    final response = await http.get(Uri.parse(url), headers: {
+      if (cookie != null) 'Cookie': cookie,
+    });
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final dir = await getTemporaryDirectory();
+      final ext = p.extension(url).isEmpty ? '.pdf' : p.extension(url);
+      final file = File(p.join(dir.path, 'share-${doc.id}$ext'));
+      await file.writeAsBytes(response.bodyBytes, flush: true);
+      return file;
+    }
+    throw Exception('Failed to download document (${response.statusCode}).');
   }
 
   Future<void> _renameCurrentFolder() async {
