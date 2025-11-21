@@ -10,7 +10,8 @@ Future<void> openDocument(BuildContext context, DocumentItem doc) async {
     GoRouter.of(context).push('/documents/view', extra: doc);
     return;
   }
-  final target = doc.fileUrl ?? doc.path;
+  // Prefer local path when available (cached download), otherwise fall back to remote URL.
+  final target = doc.path ?? doc.fileUrl;
   if (target == null) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
