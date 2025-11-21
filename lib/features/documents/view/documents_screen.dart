@@ -305,7 +305,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   Future<void> _showActions(BuildContext context, DocumentItem doc) async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.black87,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -315,13 +315,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(
+                leading: Icon(
                   Icons.drive_file_rename_outline,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
-                title: const Text(
+                title: Text(
                   'Rename',
-                  style: TextStyle(color: Colors.white),
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -329,10 +330,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.folder_open, color: Colors.white),
-                title: const Text(
+                leading: Icon(
+                  Icons.folder_open,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                title: Text(
                   'Move to folder',
-                  style: TextStyle(color: Colors.white),
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -401,7 +406,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     final folders = ref.read(homeControllerProvider).folders;
     final selected = await showModalBottomSheet<String?>(
       context: context,
-      backgroundColor: Colors.black87,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -411,19 +416,28 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.clear_all, color: Colors.white),
-                title: const Text(
+                leading: Icon(
+                  Icons.clear_all,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                title: Text(
                   'No folder',
-                  style: TextStyle(color: Colors.white),
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 onTap: () => Navigator.pop(context, null),
               ),
               for (final folder in folders)
                 ListTile(
-                  leading: const Icon(Icons.folder, color: Colors.white),
+                  leading: Icon(
+                    Icons.folder,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                   title: Text(
                     folder.name,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                   onTap: () => Navigator.pop(context, folder.id),
                 ),

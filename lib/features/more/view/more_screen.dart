@@ -300,8 +300,11 @@ class _SettingTile extends StatelessWidget {
     return ListTile(
       onTap: item.onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      tileColor: Colors.white.withValues(alpha: 0.04),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      tileColor: AppTheme.panelColor(Theme.of(context).colorScheme),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.panelBorder(Theme.of(context).colorScheme)),
+      ),
       leading: CircleAvatar(
         backgroundColor: item.color.withValues(alpha: 0.2),
         child: Icon(item.icon, color: item.color),

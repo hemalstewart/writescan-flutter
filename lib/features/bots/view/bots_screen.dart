@@ -137,7 +137,7 @@ class BotsScreen extends ConsumerWidget {
                                 crossAxisCount: 2,
                                 mainAxisSpacing: 12,
                                 crossAxisSpacing: 12,
-                                childAspectRatio: 0.85,
+                                childAspectRatio: 0.95,
                               ),
                           itemCount: state.bots.length,
                           itemBuilder: (context, index) {

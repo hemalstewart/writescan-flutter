@@ -108,7 +108,7 @@ class AppTheme {
   static Color panelColor(ColorScheme colors) {
     return colors.brightness == Brightness.dark
         ? Colors.white.withValues(alpha: 0.05)
-        : Colors.white;
+        : colors.surfaceContainerHighest;
   }
 
   static Color panelBorder(ColorScheme colors) {

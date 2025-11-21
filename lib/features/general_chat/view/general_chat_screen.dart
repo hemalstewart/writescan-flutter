@@ -254,7 +254,7 @@ class _ChatInputState extends State<_ChatInput> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
+        color: AppTheme.panelColor(colors),
         border: Border(top: BorderSide(color: AppTheme.panelBorder(colors))),
       ),
       child: Row(
@@ -265,7 +265,7 @@ class _ChatInputState extends State<_ChatInput> {
               decoration: InputDecoration(
                 hintText: 'Ask anything...',
                 filled: true,
-                fillColor: colors.onSurface.withValues(alpha: 0.06),
+                fillColor: AppTheme.panelColor(colors),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(color: AppTheme.panelBorder(colors)),
@@ -292,7 +292,7 @@ class _ChatInputState extends State<_ChatInput> {
                         color: Colors.white,
                       ),
                     )
-                  : Icon(Icons.send_rounded, color: colors.onSurface),
+                  : Icon(Icons.send_rounded, color: colors.onPrimary),
               onPressed: _sending ? null : () => _handleSend(colors),
             ),
           ),

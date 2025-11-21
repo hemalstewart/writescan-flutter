@@ -228,7 +228,7 @@ class HomeScreen extends ConsumerWidget {
   ) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.black87,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -237,13 +237,14 @@ class HomeScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.drive_file_rename_outline,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
-              title: const Text(
+              title: Text(
                 'Rename',
-                style: TextStyle(color: Colors.white),
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -556,9 +557,16 @@ class _DocCard extends StatelessWidget {
             children: [
               Text(
                 doc.dateLabel,
-                style: const TextStyle(color: Colors.white60, fontSize: 11),
+                style: TextStyle(
+                  color: colors.onSurface.withValues(alpha: 0.65),
+                  fontSize: 11,
+                ),
               ),
-              const Icon(Icons.more_vert, color: Colors.white54, size: 18),
+              Icon(
+                Icons.more_vert,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                size: 18,
+              ),
             ],
           ),
         ],
@@ -594,7 +602,10 @@ class _FolderCard extends StatelessWidget {
               const Spacer(),
               Text(
                 '${folder.count} files',
-                style: const TextStyle(color: Colors.white60, fontSize: 11),
+                style: TextStyle(
+                  color: colors.onSurface.withValues(alpha: 0.65),
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
