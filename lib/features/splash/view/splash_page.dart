@@ -67,17 +67,10 @@ class _SplashPageState extends ConsumerState<SplashPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Icon(
-                  Icons.draw_rounded,
-                  size: 48,
-                  color: colors.primary,
-                ),
+              Image.asset(
+                'assets/app_icon.png',
+                width: 140,
+                height: 140,
               ),
               const SizedBox(height: 18),
               const Text(
