@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app_theme.dart';
-
 import '../../../config/app_config.dart';
 import '../../auth/auth_controller.dart';
 import '../../home/state/home_state.dart';
+import '../../../widgets/webview_page.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -44,6 +43,7 @@ class MoreScreen extends ConsumerWidget {
           brightness == Brightness.dark
               ? AppConfig.privacyPolicyDark
               : AppConfig.privacyPolicyLight,
+          'Privacy Policy',
         ),
       ),
       _SettingItem(
@@ -56,6 +56,7 @@ class MoreScreen extends ConsumerWidget {
           brightness == Brightness.dark
               ? AppConfig.termsDark
               : AppConfig.termsLight,
+          'Terms & Conditions',
         ),
       ),
       _SettingItem(
@@ -63,7 +64,7 @@ class MoreScreen extends ConsumerWidget {
         title: 'More apps',
         subtitle: 'Discover more tools from AppMixer.',
         color: Colors.orangeAccent,
-        onTap: () => _openExternal(context, AppConfig.moreAppsUrl),
+        onTap: () => _openExternal(context, AppConfig.moreAppsUrl, 'More apps'),
       ),
       _SettingItem(
         icon: Icons.ios_share_rounded,
@@ -137,85 +138,60 @@ class MoreScreen extends ConsumerWidget {
     GoRouter.of(context).push('/scan', extra: kind);
   }
 
-  static Future<void> _openExternal(BuildContext context, String url) async {
-    final uri = Uri.parse(url);
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Could not open link')));
-    }
+  static Future<void> _openExternal(
+    BuildContext context,
+    String url,
+    String title,
+  ) async {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WebviewPage(url: url, title: title),
+      ),
+    );
   }
 
   static Future<void> _shareApp(BuildContext context) async {
-    try {
-      await Share.share(
-        'Check out Write Scan: ${AppConfig.playStoreLink}',
-        subject: 'Write Scan',
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Unable to share: $e')));
-      }
-    }
+    final box = context.findRenderObject() as RenderBox?;
+    final rect = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : const Rect.fromLTWH(0, 0, 100, 100);
+    await Share.share(
+      'Check out WriteScan for scanning, AI chat, and more: ${AppConfig.playStoreLink}',
+      subject: 'Try WriteScan',
+      sharePositionOrigin: rect,
+    );
   }
 
   static Future<void> _confirmUnsubscribe(
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final controller = ref.read(authControllerProvider.notifier);
-    final messenger = ScaffoldMessenger.of(context);
-    final router = GoRouter.of(context);
-
-    final confirm = await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsubscribe from WriteScan?'),
-        content: const Text('You can rejoin anytime by signing up again.'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unsubscribe'),
+        content: const Text(
+          'This will sign you out and deactivate the service. Continue?',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Unsubscribe'),
           ),
         ],
       ),
     );
-    if (confirm != true) return;
-    try {
-      await controller.unsubscribe();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('You have been unsubscribed.')),
-      );
-      router.go('/auth');
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Failed to unsubscribe: $e')),
-      );
-    }
+    if (confirmed != true) return;
+    await ref.read(authControllerProvider.notifier).unsubscribe();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('You have been unsubscribed.')),
+    );
   }
-}
-
-class _QuickAction {
-  _QuickAction({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
 }
 
 class _QuickActionCard extends StatelessWidget {
@@ -285,6 +261,22 @@ class _QuickActionCard extends StatelessWidget {
 
 class _SettingItem {
   const _SettingItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+}
+
+class _QuickAction {
+  const _QuickAction({
     required this.icon,
     required this.title,
     required this.subtitle,
