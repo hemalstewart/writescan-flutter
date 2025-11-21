@@ -147,10 +147,8 @@ class _BotChatInputState extends State<_BotChatInput> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
-        border: Border(
-          top: BorderSide(color: colors.onSurface.withValues(alpha: 0.08)),
-        ),
+        color: AppTheme.panelColor(colors),
+        border: Border(top: BorderSide(color: AppTheme.panelBorder(colors))),
       ),
       child: Row(
         children: [
@@ -160,12 +158,10 @@ class _BotChatInputState extends State<_BotChatInput> {
               decoration: InputDecoration(
                 hintText: 'Message this bot...',
                 filled: true,
-                fillColor: colors.onSurface.withValues(alpha: 0.06),
+                fillColor: AppTheme.panelColor(colors),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                    color: colors.onSurface.withValues(alpha: 0.08),
-                  ),
+                  borderSide: BorderSide(color: AppTheme.panelBorder(colors)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -186,10 +182,10 @@ class _BotChatInputState extends State<_BotChatInput> {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: colors.onSurface,
+                        color: colors.onPrimary,
                       ),
                     )
-                  : Icon(Icons.send_rounded, color: colors.onSurface),
+                  : Icon(Icons.send_rounded, color: colors.onPrimary),
               onPressed: _sending ? null : () => _handleSend(colors),
             ),
           ),
