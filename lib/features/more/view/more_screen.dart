@@ -60,13 +60,6 @@ class MoreScreen extends ConsumerWidget {
         ),
       ),
       _SettingItem(
-        icon: Icons.apps_rounded,
-        title: 'More apps',
-        subtitle: 'Discover more tools from AppMixer.',
-        color: Colors.orangeAccent,
-        onTap: () => _openExternal(context, AppConfig.moreAppsUrl, 'More apps'),
-      ),
-      _SettingItem(
         icon: Icons.ios_share_rounded,
         title: 'Share WriteScan',
         subtitle: 'Invite friends to try the app.',
