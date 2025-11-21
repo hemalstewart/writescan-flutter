@@ -38,12 +38,13 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (state.message != null && state.message!.isNotEmpty) {
+      final msg = state.message;
+      if (msg != null && msg.isNotEmpty && state.stage != AuthStage.enterPhone) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
             SnackBar(
-              content: Text(state.message!),
+              content: Text(msg),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -95,6 +96,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           ? _PhoneCard(
                               colors: colors,
                               controller: _mobileController,
+                              errorText: state.stage == AuthStage.enterPhone
+                                  ? state.message
+                                  : null,
                               onSend: (value) =>
                                   controller.sendOtp(value.trim()),
                               onChanged: (value) {
@@ -138,12 +142,14 @@ class _PhoneCard extends StatelessWidget {
     required this.colors,
     required this.controller,
     required this.onSend,
+    this.errorText,
     this.onChanged,
   });
 
   final ColorScheme colors;
   final TextEditingController controller;
   final ValueChanged<String> onSend;
+  final String? errorText;
   final ValueChanged<String>? onChanged;
 
   @override
@@ -205,10 +211,11 @@ class _PhoneCard extends StatelessWidget {
               LengthLimitingTextInputFormatter(10),
               FilteringTextInputFormatter.digitsOnly,
             ],
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Mobile number',
               prefixText: '+94 ',
               hintText: '07XXXXXXXX',
+              errorText: errorText?.isNotEmpty == true ? errorText : null,
             ),
             style: const TextStyle(color: Colors.white),
             onSubmitted: onSend,
