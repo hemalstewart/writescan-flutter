@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
@@ -222,9 +223,8 @@ class HomeController extends StateNotifier<HomeState> {
     state = state.copyWith(isLoading: true);
     try {
       await _syncFromRemote();
-    } catch (error) {
-      state = state.copyWith(isLoading: false);
-      throw HomeException(_messageFromError(error));
+    } catch (_) {
+      await _loadFromLocal();
     }
   }
 
@@ -482,8 +482,12 @@ class HomeController extends StateNotifier<HomeState> {
   }
 
   Future<void> _syncFromRemote() async {
-    final docsRaw = await _api.fetchDocuments();
-    final foldersRaw = await _api.fetchFolders();
+    final docsRaw = await _api
+        .fetchDocuments()
+        .timeout(const Duration(seconds: 6));
+    final foldersRaw = await _api
+        .fetchFolders()
+        .timeout(const Duration(seconds: 6));
     final documents = docsRaw
         .map((e) => DocumentItem.fromJson(Map<String, dynamic>.from(e)))
         .toList();
@@ -567,7 +571,7 @@ class HomeController extends StateNotifier<HomeState> {
           final resp = await http.get(
             Uri.parse(url),
             headers: {if (cookie != null) 'Cookie': cookie},
-          );
+          ).timeout(const Duration(seconds: 6));
           if (resp.statusCode >= 200 && resp.statusCode < 300) {
             await file.writeAsBytes(resp.bodyBytes);
           } else {
