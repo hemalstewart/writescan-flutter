@@ -18,11 +18,11 @@ class AppConfig {
 
   /// Public pages.
   static const String privacyPolicyLight =
-      'https://lakminiint.com/ideamart/bixway/privacy_policy.html';
+      'https://phpstack-1483171-5637751.cloudwaysapps.com/privacy_policy/bixway/privacy_policy.html';
   static const String privacyPolicyDark =
-      'https://lakminiint.com/ideamart/bixway/privacy_policy_dark.html';
+      'https://phpstack-1483171-5637751.cloudwaysapps.com/privacy_policy/bixway/privacy_policy_dark.html';
   static const String termsLight =
-      'https://lakminiint.com/ideamart/bytehub/ReCon/terms_conditions.php?app_id=24&console=Bixway%20International&name=WriteScan';
+      'https://phpstack-1483171-5637751.cloudwaysapps.com/terms_conditions.php?app_id=24&console=Bixway%20International&name=Write%20Scan';
   static const String termsDark = termsLight;
   static const String moreAppsUrl =
       'https://play.google.com/store/apps/developer?id=AppMixer';
