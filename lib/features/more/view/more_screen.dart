@@ -82,45 +82,51 @@ class MoreScreen extends ConsumerWidget {
         ),
         child: SafeArea(
           child: LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'More features',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
+            builder: (context, constraints) {
+              final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20, 16, 20, 32 + bottomInset),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'More features',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...quickActions.map(
+                        (action) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _QuickActionCard(action: action),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Settings',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...settings.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _SettingTile(item: item),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  ...quickActions.map(
-                    (action) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _QuickActionCard(action: action),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Settings',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ...settings.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _SettingTile(item: item),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
