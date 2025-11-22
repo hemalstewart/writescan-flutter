@@ -34,6 +34,30 @@ class MoreScreen extends ConsumerWidget {
     ];
     final settings = [
       _SettingItem(
+        icon: Icons.sync_rounded,
+        title: 'Sync now',
+        subtitle: 'Push offline items and refresh.',
+        color: Colors.tealAccent,
+        onTap: () async {
+          try {
+            await ref.read(homeControllerProvider.notifier).refresh();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Synced successfully')),
+              );
+            }
+          } catch (_) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Sync failed. Check connection and try again.'),
+                ),
+              );
+            }
+          }
+        },
+      ),
+      _SettingItem(
         icon: Icons.privacy_tip_rounded,
         title: 'Privacy Policy',
         subtitle: 'View how we handle your data.',

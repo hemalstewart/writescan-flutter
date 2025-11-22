@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AppShell extends StatelessWidget {
+import '../../home/state/home_state.dart';
+
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, required this.child});
 
   final Widget child;
 
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell>
+    with WidgetsBindingObserver {
   int _indexFromLocation(String location) {
     if (location.startsWith('/home')) return 0;
     if (location.startsWith('/bots')) return 1;
@@ -27,6 +36,27 @@ class AppShell extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Sync pending offline items when app returns to foreground.
+      ref.read(homeControllerProvider.notifier).refresh();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final router = GoRouter.of(context);
     final location = GoRouterState.of(context).uri.path;
@@ -34,7 +64,7 @@ class AppShell extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: colors.surface,

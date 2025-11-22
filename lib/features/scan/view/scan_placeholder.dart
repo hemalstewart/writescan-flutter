@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 import '../../home/state/home_state.dart';
+import 'scan_review_page.dart';
 import '../../../app_theme.dart';
 
 class ScanPlaceholderPage extends ConsumerStatefulWidget {
@@ -179,7 +180,11 @@ class _ScanPlaceholderPageState extends ConsumerState<ScanPlaceholderPage> {
     try {
       final result = await _scanWithCamera(widget.kind);
       if (result != null && mounted) {
-        await _uploadResult(context, ref, widget.kind, result);
+        if (result.path.toLowerCase().endsWith('.pdf')) {
+          await _directUpload(ref, widget.kind, result.title, result.path);
+        } else {
+          await _reviewAndSave(ref, widget.kind, [result.path], result.title);
+        }
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -192,40 +197,54 @@ class _ScanPlaceholderPageState extends ConsumerState<ScanPlaceholderPage> {
     try {
       final result = await _pickFileOrImage(widget.kind);
       if (result != null && mounted) {
-        await _uploadResult(context, ref, widget.kind, result);
+        if (result.path.toLowerCase().endsWith('.pdf')) {
+          await _directUpload(ref, widget.kind, result.title, result.path);
+        } else {
+          await _reviewAndSave(ref, widget.kind, [result.path], result.title);
+        }
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  Future<void> _uploadResult(
-    BuildContext context,
+  Future<void> _reviewAndSave(
     WidgetRef ref,
     DocumentKind kind,
-    _PickResult result,
+    List<String> paths,
+    String title,
+  ) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ScanReviewPage(paths: paths, kind: kind),
+      ),
+    );
+    if (saved == true && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _directUpload(
+    WidgetRef ref,
+    DocumentKind kind,
+    String title,
+    String path,
   ) async {
     final controller = ref.read(homeControllerProvider.notifier);
     try {
-      await controller.uploadDocument(result.title, kind, path: result.path);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Uploaded "${result.title}"')));
-      Navigator.of(context).pop();
-    } catch (e) {
-      // Fallback to offline save when network fails.
-      await controller.addOfflineDocument(
-        result.title,
-        kind,
-        path: result.path,
+      await controller.uploadDocument(title, kind, path: path);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Uploaded "$title"')),
       );
-      if (!context.mounted) return;
+      Navigator.of(context).pop();
+    } catch (_) {
+      await controller.addOfflineDocument(title, kind, path: path);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Saved offline. We will sync when you are back online.',
-          ),
+          content:
+              Text('Saved offline. We will sync when you are back online.'),
         ),
       );
       Navigator.of(context).pop();
