@@ -277,6 +277,32 @@ class HomeController extends StateNotifier<HomeState> {
     }
   }
 
+  /// Save locally without server when offline.
+  Future<void> addOfflineDocument(
+    String title,
+    DocumentKind kind, {
+    required String path,
+    String? folderId,
+  }) async {
+    final file = _resolveFile(path);
+    if (!file.existsSync()) {
+      throw HomeException('File not found on device');
+    }
+    final tempId = 'local-${DateTime.now().millisecondsSinceEpoch}';
+    final doc = DocumentItem(
+      id: tempId,
+      title: title,
+      size: _fileSize(file.path),
+      dateLabel: 'Saved offline',
+      folderId: folderId,
+      kind: kind,
+      path: file.path,
+      status: 'offline',
+    );
+    state = state.copyWith(documents: [doc, ...state.documents]);
+    await _persist();
+  }
+
   Future<void> addFolder(String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
@@ -432,13 +458,13 @@ class HomeController extends StateNotifier<HomeState> {
   }
 
   Future<void> _load() async {
+    // Always hydrate from local first so offline docs are present.
+    await _loadFromLocal();
     try {
       await _syncFromRemote();
-      return;
     } catch (_) {
-      // fall back to locally cached content
+      // stay with local state if remote sync fails
     }
-    await _loadFromLocal();
   }
 
   Future<void> _loadFromLocal() async {
@@ -482,6 +508,11 @@ class HomeController extends StateNotifier<HomeState> {
   }
 
   Future<void> _syncFromRemote() async {
+    // Preserve any offline-created docs before replacing with remote data.
+    final offlineDocs = state.documents
+        .where((d) => (d.status ?? '').toLowerCase() == 'offline')
+        .toList();
+
     final docsRaw = await _api
         .fetchDocuments()
         .timeout(const Duration(seconds: 6));
@@ -495,12 +526,24 @@ class HomeController extends StateNotifier<HomeState> {
     final folders = foldersRaw
         .map((e) => Folder.fromJson(Map<String, dynamic>.from(e)))
         .toList();
+
+    // Merge offline docs at the top (avoid duplicate IDs).
+    final merged = <DocumentItem>[];
+    merged.addAll(offlineDocs);
+    merged.addAll(
+      cachedDocs.where(
+        (remote) => offlineDocs.every((o) => o.id != remote.id),
+      ),
+    );
+
     state = state.copyWith(
-      documents: cachedDocs,
+      documents: merged,
       folders: folders,
       isLoading: false,
     );
     await _persist();
+    // Try to push any pending offline docs now that we have connectivity.
+    await _syncOfflinePending();
   }
 
   Future<void> _syncFromRemoteSilently() async {
@@ -521,6 +564,47 @@ class HomeController extends StateNotifier<HomeState> {
     }
     state = state.copyWith(documents: docs);
     await _persist();
+  }
+
+  Future<void> _syncOfflinePending() async {
+    final pending = state.documents
+        .where((d) => (d.status ?? '').toLowerCase() == 'offline')
+        .where((d) => d.path != null)
+        .toList();
+    if (pending.isEmpty) return;
+
+    final updatedDocs = List<DocumentItem>.from(state.documents);
+    bool changed = false;
+
+    for (final doc in pending) {
+      try {
+        final file = File(doc.path!);
+        if (!file.existsSync()) continue;
+        final response = await _api.uploadDocument(
+          name: doc.title,
+          type: _typeForUpload(doc.kind, file.path),
+          file: file,
+          folderId: doc.folderId,
+        );
+        final created = DocumentItem.fromJson(
+          Map<String, dynamic>.from(response),
+        );
+        final idx = updatedDocs.indexWhere((d) => d.id == doc.id);
+        if (idx != -1) {
+          updatedDocs[idx] = created;
+        } else {
+          updatedDocs.insert(0, created);
+        }
+        changed = true;
+      } catch (_) {
+        // Keep offline doc if upload fails; will retry later.
+      }
+    }
+
+    if (changed) {
+      state = state.copyWith(documents: updatedDocs);
+      await _persist();
+    }
   }
 
   Future<void> _restoreDocument(DocumentItem document) async {

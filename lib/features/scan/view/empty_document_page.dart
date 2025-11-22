@@ -140,18 +140,34 @@ class _EmptyDocumentPageState extends ConsumerState<EmptyDocumentPage> {
         ),
       );
       await file.writeAsBytes(bytes, flush: true);
-      await ref
-          .read(homeControllerProvider.notifier)
-          .uploadDocument(
-            'Empty Document ${DateTime.now().millisecondsSinceEpoch}',
-            DocumentKind.normal,
-            path: file.path,
-          );
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Empty document saved.')));
-      Navigator.pop(context);
+      final home = ref.read(homeControllerProvider.notifier);
+      final name = 'Empty Document ${DateTime.now().millisecondsSinceEpoch}';
+      try {
+        await home.uploadDocument(
+          name,
+          DocumentKind.normal,
+          path: file.path,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Empty document saved.')));
+        Navigator.pop(context);
+      } catch (_) {
+        await home.addOfflineDocument(
+          name,
+          DocumentKind.normal,
+          path: file.path,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Saved offline. We will sync when you are back online.'),
+          ),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

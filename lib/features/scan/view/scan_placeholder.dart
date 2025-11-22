@@ -214,14 +214,21 @@ class _ScanPlaceholderPageState extends ConsumerState<ScanPlaceholderPage> {
       ).showSnackBar(SnackBar(content: Text('Uploaded "${result.title}"')));
       Navigator.of(context).pop();
     } catch (e) {
-      final message = e is HomeException
-          ? e.message
-          : 'Failed to upload document';
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
-      }
+      // Fallback to offline save when network fails.
+      await controller.addOfflineDocument(
+        result.title,
+        kind,
+        path: result.path,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Saved offline. We will sync when you are back online.',
+          ),
+        ),
+      );
+      Navigator.of(context).pop();
     }
   }
 }

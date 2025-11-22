@@ -229,14 +229,33 @@ class _HandwritingScanPageState extends ConsumerState<HandwritingScanPage> {
       );
       await file.writeAsString(text);
       final name = 'Handwriting ${DateTime.now().millisecondsSinceEpoch}';
-      await ref
-          .read(homeControllerProvider.notifier)
-          .uploadDocument(name, DocumentKind.handwriting, path: file.path);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Saved "$name" to Documents')));
-      Navigator.pop(context);
+      final home = ref.read(homeControllerProvider.notifier);
+      try {
+        await home.uploadDocument(
+          name,
+          DocumentKind.handwriting,
+          path: file.path,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Saved "$name" to Documents')));
+        Navigator.pop(context);
+      } catch (_) {
+        await home.addOfflineDocument(
+          name,
+          DocumentKind.handwriting,
+          path: file.path,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Saved offline. We will sync when you are back online.'),
+          ),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

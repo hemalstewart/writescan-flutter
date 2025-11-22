@@ -216,14 +216,33 @@ class _CsvScanPageState extends ConsumerState<CsvScanPage> {
         p.join(dir.path, '${DateTime.now().millisecondsSinceEpoch}.csv'),
       );
       await file.writeAsString(csv);
-      await ref
-          .read(homeControllerProvider.notifier)
-          .uploadDocument(name, DocumentKind.csv, path: file.path);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Saved "$name" to Documents')));
-      Navigator.pop(context);
+      final home = ref.read(homeControllerProvider.notifier);
+      try {
+        await home.uploadDocument(
+          name,
+          DocumentKind.csv,
+          path: file.path,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Saved "$name" to Documents')));
+        Navigator.pop(context);
+      } catch (_) {
+        await home.addOfflineDocument(
+          name,
+          DocumentKind.csv,
+          path: file.path,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Saved offline. We will sync when you are back online.'),
+          ),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

@@ -13,16 +13,14 @@ class GeneralChatScreen extends ConsumerStatefulWidget {
 
 class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
   final _scrollController = ScrollController();
-  int _lastMessageCount = 0;
   bool _clearing = false;
 
   void _scrollToBottom(List<ChatMessage> messages) {
-    if (messages.length == _lastMessageCount) return;
-    _lastMessageCount = messages.length;
+    if (messages.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 80,
+        _scrollController.position.maxScrollExtent + 200,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -100,7 +98,12 @@ class _GeneralChatScreenState extends ConsumerState<GeneralChatScreen> {
                     ? const Center(child: CircularProgressIndicator())
                     : ListView.builder(
                         controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          12,
+                          20,
+                          state.isSending ? 32 : 12,
+                        ),
                         itemCount: state.messages.length,
                         itemBuilder: (context, index) {
                           final m = state.messages[index];
