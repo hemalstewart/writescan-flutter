@@ -9,21 +9,35 @@ import 'package:path_provider/path_provider.dart';
 import '../data/home_api.dart';
 import '../data/home_local_data_source.dart';
 import '../../../data/local_storage.dart';
+import '../../../data/local_db.dart';
 
 class Folder {
-  Folder({required this.id, required this.name, this.count = 0, this.color});
+  Folder({
+    required this.id,
+    required this.name,
+    this.count = 0,
+    this.color,
+    this.status,
+  });
 
   final String id;
   final String name;
   final int count;
   final String? color;
+  final String? status;
 
-  Folder copyWith({String? name, int? count, String? color}) {
+  Folder copyWith({
+    String? name,
+    int? count,
+    String? color,
+    String? status,
+  }) {
     return Folder(
       id: id,
       name: name ?? this.name,
       count: count ?? this.count,
       color: color ?? this.color,
+      status: status ?? this.status,
     );
   }
 
@@ -32,6 +46,7 @@ class Folder {
     'name': name,
     'count': count,
     'color': color,
+    'status': status,
   };
 
   factory Folder.fromJson(Map<String, dynamic> json) => Folder(
@@ -41,6 +56,7 @@ class Folder {
       json['count'] ?? json['documents_count'] ?? json['document_count'],
     ),
     color: json['color'] as String? ?? json['colour'] as String?,
+    status: json['status'] as String?,
   );
 }
 
@@ -218,6 +234,7 @@ class HomeController extends StateNotifier<HomeState> {
 
   final _store = HomeLocalDataSource();
   final _api = HomeApi();
+  final _localDb = LocalDb();
 
   Future<void> refresh() async {
     state = state.copyWith(isLoading: true);
@@ -313,8 +330,16 @@ class HomeController extends StateNotifier<HomeState> {
       final folder = Folder.fromJson(Map<String, dynamic>.from(response));
       state = state.copyWith(folders: [folder, ...state.folders]);
       await _persist();
-    } catch (error) {
-      throw HomeException(_messageFromError(error));
+    } catch (_) {
+      // Save offline and sync later.
+      final offlineFolder = Folder(
+        id: 'local-${DateTime.now().millisecondsSinceEpoch}',
+        name: trimmed,
+        count: 0,
+        status: 'offline-new',
+      );
+      state = state.copyWith(folders: [offlineFolder, ...state.folders]);
+      await _persist();
     }
   }
 
@@ -327,7 +352,10 @@ class HomeController extends StateNotifier<HomeState> {
     if (idx == -1) throw HomeException('Folder not found');
     final prev = state.folders[idx];
     final updatedFolders = List<Folder>.from(state.folders);
-    updatedFolders[idx] = prev.copyWith(name: trimmed);
+    updatedFolders[idx] = prev.copyWith(
+      name: trimmed,
+      status: prev.id.startsWith('local-') ? prev.status : 'pending-rename',
+    );
     state = state.copyWith(folders: updatedFolders);
     await _persist();
     try {
@@ -336,19 +364,12 @@ class HomeController extends StateNotifier<HomeState> {
       final refreshed = List<Folder>.from(state.folders);
       final newIdx = refreshed.indexWhere((f) => f.id == folder.id);
       if (newIdx != -1) {
-        refreshed[newIdx] = folder;
+        refreshed[newIdx] = folder.copyWith(status: null);
         state = state.copyWith(folders: refreshed);
         await _persist();
       }
-    } catch (error) {
-      final reverted = List<Folder>.from(state.folders);
-      final revertIdx = reverted.indexWhere((f) => f.id == prev.id);
-      if (revertIdx != -1) {
-        reverted[revertIdx] = prev;
-        state = state.copyWith(folders: reverted);
-        await _persist();
-      }
-      throw HomeException(_messageFromError(error));
+    } catch (_) {
+      // Keep pending state; will retry when back online.
     }
   }
 
@@ -469,8 +490,11 @@ class HomeController extends StateNotifier<HomeState> {
 
   Future<void> _loadFromLocal() async {
     try {
+      final localDocs = await _localDb.loadDocuments();
       final (docs, folders) = await _store.load();
-      if (docs.isEmpty && folders.isEmpty) {
+      final mergedDocs = localDocs.isNotEmpty ? localDocs : docs;
+      final mergedFolders = folders;
+      if (mergedDocs.isEmpty && folders.isEmpty) {
         state = HomeState(
           documents: [
             DocumentItem(
@@ -497,8 +521,8 @@ class HomeController extends StateNotifier<HomeState> {
         await _persist();
       } else {
         state = state.copyWith(
-          documents: docs,
-          folders: folders,
+          documents: mergedDocs,
+          folders: mergedFolders,
           isLoading: false,
         );
       }
@@ -508,9 +532,15 @@ class HomeController extends StateNotifier<HomeState> {
   }
 
   Future<void> _syncFromRemote() async {
-    // Preserve any offline-created docs before replacing with remote data.
+    // Preserve any offline-created docs/folders before replacing with remote data.
     final offlineDocs = state.documents
         .where((d) => (d.status ?? '').toLowerCase() == 'offline')
+        .toList();
+    final offlineFolders = state.folders
+        .where((f) => (f.status ?? '').toLowerCase().startsWith('offline'))
+        .toList();
+    final pendingRenameFolders = state.folders
+        .where((f) => (f.status ?? '').toLowerCase() == 'pending-rename')
         .toList();
 
     final docsRaw = await _api
@@ -526,6 +556,14 @@ class HomeController extends StateNotifier<HomeState> {
     final folders = foldersRaw
         .map((e) => Folder.fromJson(Map<String, dynamic>.from(e)))
         .toList();
+    final mergedFolders = <Folder>[];
+    mergedFolders.addAll(offlineFolders);
+    mergedFolders.addAll(pendingRenameFolders);
+    mergedFolders.addAll(
+      folders.where(
+        (remote) => mergedFolders.every((f) => f.id != remote.id),
+      ),
+    );
 
     // Merge offline docs at the top (avoid duplicate IDs).
     final merged = <DocumentItem>[];
@@ -538,12 +576,13 @@ class HomeController extends StateNotifier<HomeState> {
 
     state = state.copyWith(
       documents: merged,
-      folders: folders,
+      folders: mergedFolders,
       isLoading: false,
     );
     await _persist();
     // Try to push any pending offline docs now that we have connectivity.
     await _syncOfflinePending();
+    await _syncOfflineFolders();
   }
 
   Future<void> _syncFromRemoteSilently() async {
@@ -607,6 +646,49 @@ class HomeController extends StateNotifier<HomeState> {
     }
   }
 
+  Future<void> _syncOfflineFolders() async {
+    final pending = state.folders.where((f) {
+      final status = (f.status ?? '').toLowerCase();
+      return status == 'offline-new' || status == 'pending-rename';
+    }).toList();
+    if (pending.isEmpty) return;
+
+    final updated = List<Folder>.from(state.folders);
+    var changed = false;
+
+    for (final folder in pending) {
+      final status = (folder.status ?? '').toLowerCase();
+      try {
+        if (status == 'offline-new') {
+          final created = Folder.fromJson(
+            Map<String, dynamic>.from(await _api.createFolder(folder.name)),
+          );
+          final idx = updated.indexWhere((f) => f.id == folder.id);
+          if (idx != -1) {
+            updated[idx] = created;
+          } else {
+            updated.insert(0, created);
+          }
+          changed = true;
+        } else if (status == 'pending-rename') {
+          await _api.updateFolder(folder.id, folder.name);
+          final idx = updated.indexWhere((f) => f.id == folder.id);
+          if (idx != -1) {
+            updated[idx] = folder.copyWith(status: null);
+            changed = true;
+          }
+        }
+      } catch (_) {
+        // keep pending state; will retry later
+      }
+    }
+
+    if (changed) {
+      state = state.copyWith(folders: updated);
+      await _persist();
+    }
+  }
+
   Future<void> _restoreDocument(DocumentItem document) async {
     final docs = List<DocumentItem>.from(state.documents);
     final idx = docs.indexWhere((d) => d.id == document.id);
@@ -621,6 +703,7 @@ class HomeController extends StateNotifier<HomeState> {
 
   Future<void> _persist() async {
     await _store.save(state.documents, state.folders);
+    await _localDb.saveDocuments(state.documents);
   }
 
   Future<List<DocumentItem>> _cacheDocuments(List<DocumentItem> docs) async {
